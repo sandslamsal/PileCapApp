@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import "./App.css";
 import PileDrawing from "./components/PileDrawing";
 import ReactionTable from "./components/ReactionTable";
@@ -489,18 +489,56 @@ function App() {
             </div>
 
             {/* Legend and Instructions for Pile Table */}
-            {pileForces && pileForces.coordinates && (
-              <div style={{margin: '18px 0 8px 0', padding: '10px 18px', background: '#f8fafc', borderRadius: 8, boxShadow: '0 1px 4px #0001', maxWidth: 900}}>
-                <strong>Legend:</strong>
-                <ul style={{margin: '8px 0 0 18px', padding: 0, listStyle: 'disc'}}>
-                  <li><span style={{color:'#d9534f',fontWeight:'bold'}}>Red Pmax</span>: Pmax &gt; 100 kips (high compression)</li>
-                  <li><span style={{color:'#4682b4',fontWeight:'bold'}}>Blue Pmin</span>: Pmin &lt; 0 kips (tension)</li>
-                  <li><span style={{color:'#4682b4'}}>Load Case</span>: Governing load case for Pmax/Pmin</li>
-                  <li>Pmax/Pmin Components: Axial + Mx + My breakdown</li>
+            {Array.isArray(pileForces?.coordinates) && pileForces.coordinates.length > 0 && (
+              <div style={{
+                margin: '18px 0 8px 0',
+                padding: '18px 20px',
+                background: '#f3f7fb',
+                border: '1.5px solid #c6daf7',
+                borderRadius: 10,
+                boxShadow: '0 1px 6px #bdd6fa33',
+                maxWidth: 900,
+                fontSize: 15,
+                lineHeight: 1.6
+              }}>
+                <div style={{fontWeight: 700, fontSize: '1.12em', color: '#1c3a5a', marginBottom: 3}}>Pile Layout Legend &amp; Guidance</div>
+                <ul style={{margin: '10px 0 0 22px', padding: 0, listStyle: 'disc'}}>
+                  <li>
+                    <span style={{color:'#d9534f',fontWeight:'bold'}}>Red Pmax</span> — Piles with <b>Pmax &gt; 100 kips</b> (high compression zone, check structural safety or layout)
+                  </li>
+                  <li>
+                    <span style={{color:'#1976d2',fontWeight:'bold'}}>Blue Pmin</span> — Piles with <b>Pmin &lt; 0 kips</b> (tension zone, check for uplift or anchor requirements)
+                  </li>
+                  <li>
+                    <span style={{color:'#654ea3',fontWeight:600}}>Load Case</span>: Shows which factored load governs <b>Pmax</b> or <b>Pmin</b> for each pile
+                  </li>
+                  <li>
+                    <span style={{fontWeight:500}}>Components</span>: Decomposes pile load into <b>Axial</b>, <b>Mx</b>, and <b>My</b> moment effects
+                  </li>
+                  <li>
+                    <span style={{fontWeight:500}}>Full Table:</span> View all governing and component values for every pile in the breakdown table below
+                  </li>
                 </ul>
-                <div style={{marginTop:8, fontSize:12, color:'#555'}}>
-                  <strong>Instructions:</strong> Review pile forces for each pile. Hover over piles in the drawing for details. Use the table below for a full breakdown.
+                <div style={{marginTop:14, fontSize:13, color:'#345'}}>
+                  <span style={{fontWeight:600, color:'#333'}}>Tips:</span> <br/>
+                  – Hover over piles in the diagram for quick values.<br/>
+                  – Use the table to identify piles with extreme tension or compression.<br/>
+                  – Adjust pile count, spacing, or footing size if you see excessive pile loads.
                 </div>
+              </div>
+            )}
+
+            {/* Calculate Pile Forces Button: show as soon as pileCoordinates is available */}
+            {pileCoordinates && (
+              <div style={{margin: '16px 0'}}>
+                <button
+                  className="primary-button"
+                  onClick={calculatePileForces}
+                  disabled={!loadCaseSaved || !pileCoordinates}
+                  type="button"
+                >
+                  Calculate Pile Forces (Pmax/Pmin)
+                </button>
               </div>
             )}
 
@@ -549,6 +587,48 @@ function App() {
                 </div>
               </div>
             )}
+
+            {/* --- Classic P values breakdown table for each pile --- */}
+            {Array.isArray(pileForces?.coordinates) && pileForces.coordinates.length > 0 && (
+              <div className="pile-pvalues-breakdown" style={{marginTop: 8, marginBottom: 32}}>
+                <h3>Full Pile Load Breakdown (All Load Cases)</h3>
+                <div style={{maxHeight: 400, overflowY: 'auto', background: '#f8fafc', borderRadius: 8, padding: 12, boxShadow: '0 1px 4px #0001'}}>
+                  {pileForces.coordinates.slice(0, 200).map((pile, idx) => (
+                    <div key={idx} style={{marginBottom: 24}}>
+                      <div style={{fontWeight: 600, marginBottom: 4, color: '#234'}}>
+                        Pile #{pile['No.']} (X: {pile['x (ft)']}, Y: {pile['y (ft)']})
+                      </div>
+                      <table style={{width: '100%', marginBottom: 4, background: '#fff', borderRadius: 4, boxShadow: '0 1px 2px #0001'}}>
+                        <thead>
+                          <tr style={{background:'#e0e0e0'}}>
+                            <th>Load Case</th>
+                            <th>P Value (k)</th>
+                            <th>Axial</th>
+                            <th>Mx</th>
+                            <th>My</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(pile['P values'] || []).map((pv, j) => (
+                            <tr key={j}>
+                              <td>{pv.load_case}</td>
+                              <td>{pv.value !== undefined ? pv.value.toFixed(2) : ''}</td>
+                              <td>{pv.components ? pv.components.axial.toFixed(2) : ''}</td>
+                              <td>{pv.components ? pv.components.moment_x.toFixed(2) : ''}</td>
+                              <td>{pv.components ? pv.components.moment_y.toFixed(2) : ''}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ))}
+                  {pileForces.coordinates.length > 200 && (
+                    <div style={{color:'#b00',fontWeight:600}}>Showing first 200 piles only (data truncated for performance)</div>
+                  )}
+                </div>
+              </div>
+            )}
+            {/* --- End Classic P values breakdown table --- */}
           </div>
         )}
       </div>
@@ -678,51 +758,6 @@ function App() {
       )}
       {/* --- End Advanced Pile Cap Calculations Section --- */}
 
-      {/* Pile Forces Table (Detailed Pmax/Pmin breakdown) */}
-      {Array.isArray(pileForces?.coordinates) && pileForces.coordinates.length > 0 && (
-        <div className="pile-table" style={{marginTop: 32, marginBottom: 32}}>
-          <h3>Pile Forces Table (Pmax/Pmin Details)</h3>
-          <div className="table-wrapper" style={{overflowX: 'auto'}}>
-            <table>
-              <thead>
-                <tr>
-                  <th>Pile #</th>
-                  <th>X (ft)</th>
-                  <th>Y (ft)</th>
-                  <th>Pmax (k)</th>
-                  <th>Max Load Case</th>
-                  <th>Pmax Components</th>
-                  <th>Pmin (k)</th>
-                  <th>Min Load Case</th>
-                  <th>Pmin Components</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pileForces.coordinates.slice(0, 200).map((pile, idx) => (
-                  <tr key={idx}>
-                    <td>{pile?.['No.'] ?? ''}</td>
-                    <td>{pile?.['x (ft)'] ?? ''}</td>
-                    <td>{pile?.['y (ft)'] ?? ''}</td>
-                    <td className={pile?.['Pmax (k)'] > 100 ? 'extreme-high' : ''}>{pile?.['Pmax (k)'] ?? ''}</td>
-                    <td className="load-case">{pile?.['Max Load Case'] ?? ''}</td>
-                    <td style={{fontSize:'0.95em'}}>
-                      {pile?.['Pmax Components'] ? `Axial: ${pile['Pmax Components'].axial}, Mx: ${pile['Pmax Components'].moment_x}, My: ${pile['Pmax Components'].moment_y}` : ''}
-                    </td>
-                    <td className={pile?.['Pmin (k)'] < 0 ? 'extreme-low' : ''}>{pile?.['Pmin (k)'] ?? ''}</td>
-                    <td className="load-case">{pile?.['Min Load Case'] ?? ''}</td>
-                    <td style={{fontSize:'0.95em'}}>
-                      {pile?.['Pmin Components'] ? `Axial: ${pile['Pmin Components'].axial}, Mx: ${pile['Pmin Components'].moment_x}, My: ${pile['Pmin Components'].moment_y}` : ''}
-                    </td>
-                  </tr>
-                ))}
-                {pileForces.coordinates.length > 200 && (
-                  <tr><td colSpan={9} style={{color:'#b00',fontWeight:600}}>Showing first 200 rows only (data truncated for performance)</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

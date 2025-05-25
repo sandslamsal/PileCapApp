@@ -1,10 +1,8 @@
 # backend/main.py
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Dict, Any
-from fastapi import Body
-import math
+from typing import List
 
 app = FastAPI()
 
@@ -51,14 +49,27 @@ class ReactionTableData(BaseModel):
 
 @app.post("/api/calculate")
 def calculate(inputs: DesignInputs):
-    # Example calculation (just echoing inputs)
     result = {
         "gross_area": (inputs.col_x_dim + inputs.pile_overhang * 2) * (inputs.col_y_dim + inputs.pile_overhang * 2),
         "depth_to_tip": inputs.footing_top_elev - inputs.ground_elev + inputs.pile_embedment
     }
-    return {"inputs": inputs.dict(), "results": result}
 
-# Pile coordinates generation function
+    # Generate pile layout based on user inputs (use column and overhang dims for grid size and spacing)
+    # Example logic: estimate n_x, n_y, s_x, s_y from input dimensions
+    n_x = max(2, int((inputs.col_x_dim + 2 * inputs.pile_overhang) // 5))  # at least 2 piles
+    n_y = max(2, int((inputs.col_y_dim + 2 * inputs.pile_overhang) // 5))
+    s_x = 5.0  # default spacing, could be parameterized
+    s_y = 5.0
+    coords = generate_pile_coordinates(n_x, s_x, n_y, s_y)
+    pile_forces = calculate_pile_forces(coords, latest_reactions or DEFAULT_LOAD_CASES, inputs)
+
+    return {
+        "inputs": inputs.model_dump(),
+        "results": result,
+        "pile_coordinates": coords,  # raw coordinates for layout
+        "pile_forces": pile_forces    # full calculation output for each pile
+    }
+
 def generate_pile_coordinates(n_x, s_x, n_y, s_y):
     all_coords = []
     pile_number = 1
@@ -87,12 +98,10 @@ async def save_reactions(data: ReactionTableData):
     for idx, reaction in enumerate(valid_reactions):
         print(f"Reaction {idx+1}: Load Case={reaction.load_case}, Fz={reaction.fz}, Mx={reaction.mx}, My={reaction.my}")
     
-    latest_reactions = valid_reactions
+    latest_reactions = [r.model_dump() for r in valid_reactions]
     return {"message": f"Saved {len(valid_reactions)} reactions successfully"}
 
-# Default load cases
 DEFAULT_LOAD_CASES = [
-    {"load_case": "Fx Maximum", "dc_factor": 1.00, "fx": -131, "fy": -235, "fz": 7562, "mx": 9909, "my": -4939},
     {"load_case": "Fx Minimum", "dc_factor": 1.00, "fx": -131, "fy": 235, "fz": 7562, "mx": 9864, "my": -4939},
     {"load_case": "Fy Maximum", "dc_factor": 1.00, "fx": -119, "fy": 0, "fz": 8967, "mx": 18290, "my": 6407},
     {"load_case": "Fy Minimum", "dc_factor": 1.00, "fx": -33, "fy": 211, "fz": 5183, "mx": -15270, "my": -1417},
@@ -119,7 +128,12 @@ def calculate_pile_forces(coordinates, reactions, design_inputs):
     """
     Calculate Pmax and Pmin for each pile based on reactions and design inputs.
     """
-    if not reactions or not coordinates:
+    # Ensure each reaction is a dict with expected keys
+    normalized_reactions = [
+        r if isinstance(r, dict) else r.dict()
+        for r in reactions
+    ]
+    if not normalized_reactions or not coordinates:
         return coordinates
     
     # Extract design input values needed for calculations
@@ -163,31 +177,31 @@ def calculate_pile_forces(coordinates, reactions, design_inputs):
         # Initialize lists to store P values for each load case
         p_values = []
         
-        for reaction in reactions:
+        for reaction in normalized_reactions:
             # Step 1: Calculate Fz_max using the provided formula
-            if reaction.dc_factor <= 1:
+            if reaction['dc_factor'] <= 1:
                 soil_weight_factor = wt_soil
             else:
                 soil_weight_factor = wt_soil * 1.3/1.25
                 
-            fz_max = reaction.fz + (wt_foot + soil_weight_factor - wt_water) * reaction.dc_factor
+            fz_max = reaction['fz'] + (wt_foot + soil_weight_factor - wt_water) * reaction['dc_factor']
             
             # Step 2: Calculate Mx_max using the provided formula
-            if reaction.dc_factor <= 1:
+            if reaction['dc_factor'] <= 1:
                 weight_factor = (wt_foot - wt_water + wt_soil)
             else:
                 weight_factor = (wt_foot - wt_water + wt_soil * 1.35/1.25)
             
-            mx_max = (reaction.mx - 
-                     reaction.fy * (footing_thickness - pile_diameter/12) + 
-                     reaction.fz * (col_center_y - pile_center_y) + 
-                     weight_factor * reaction.dc_factor * (footing_center_y - pile_center_y))
+            mx_max = (reaction['mx'] - 
+                     reaction['fy'] * (footing_thickness - pile_diameter/12) + 
+                     reaction['fz'] * (col_center_y - pile_center_y) + 
+                     weight_factor * reaction['dc_factor'] * (footing_center_y - pile_center_y))
             
             # Step 3: Calculate My_max using the provided formula
-            my_max = (reaction.my + 
-                     reaction.fx * (footing_thickness - pile_diameter/12) + 
-                     reaction.fz * (pile_center_x - col_center_x) + 
-                     weight_factor * reaction.dc_factor * (pile_center_x - footing_center_x))
+            my_max = (reaction['my'] + 
+                     reaction['fx'] * (footing_thickness - pile_diameter/12) + 
+                     reaction['fz'] * (pile_center_x - col_center_x) + 
+                     weight_factor * reaction['dc_factor'] * (pile_center_x - footing_center_x))
             
             # Step 4: Calculate pile force using the general formula
             p_axial = fz_max / n_piles
@@ -196,14 +210,16 @@ def calculate_pile_forces(coordinates, reactions, design_inputs):
             
             p_value = p_axial + p_mx + p_my
             p_values.append({
-                "load_case": reaction.load_case,
+                "load_case": reaction['load_case'],
                 "value": p_value,
                 "components": {
                     "axial": p_axial,
                     "moment_x": p_mx,
                     "moment_y": p_my
                 }
-            })            # Store max and min values for all load cases
+            })
+        # Add all P values for this pile for frontend breakdown
+        pile["P values"] = p_values
         if p_values:
             # Find max and min values and their corresponding load cases
             max_p = max(p_values, key=lambda x: x["value"])
@@ -236,21 +252,59 @@ def calculate_pile_forces(coordinates, reactions, design_inputs):
     return coordinates
 
 @app.get("/api/pile-coordinates")
-async def get_pile_coords(n_x: int, s_x: float, n_y: int, s_y: float, with_calculations: bool = False, 
-                         fc: float = 5.5, fy: float = 60, cover: float = 4.5, col_x_dim: float = 9, 
-                         col_y_dim: float = 16, ecc_x: float = 0, ecc_y: float = 0, footing_thickness: float = 9, 
-                         pile_embedment: float = 12, pile_overhang: float = 1.625, ground_elev: float = 73.4, 
-                         footing_top_elev: float = 70.4, water_elev: float = 68, soil_weight: float = 0.115, 
-                         seal_thickness: float = 0, pile_cap_length: float = 40, pile_cap_width: float = 24, 
-                         D: float = 9, pile_diameter: float = 1, bar_cover: float = 4.5, bottom_bar_size_long: float = 1, bottom_bar_size_trans: float = 1, gamma_soil: float = 0.115):
+async def get_pile_coords(
+    n_x: int,
+    s_x: float,
+    n_y: int,
+    s_y: float,
+    with_calculations: bool = False,
+    fc: float = 5.5,
+    fy: float = 60,
+    cover: float = 4.5,
+    col_x_dim: float = 9,
+    col_y_dim: float = 16,
+    ecc_x: float = 0,
+    ecc_y: float = 0,
+    footing_thickness: float = 9,
+    pile_embedment: float = 12,
+    pile_overhang: float = 1.625,
+    ground_elev: float = 73.4,
+    footing_top_elev: float = 70.4,
+    water_elev: float = 68,
+    soil_weight: float = 0.115,
+    seal_thickness: float = 0,
+    pile_cap_length: float = 40,
+    pile_cap_width: float = 24,
+    D: float = 9,
+    pile_diameter: float = 1,
+    bar_cover: float = 4.5,
+    bottom_bar_size_long: float = 1,
+    bottom_bar_size_trans: float = 1,
+    gamma_soil: float = 0.115
+):
     try:
+        if n_x < 1 or n_y < 1 or s_x <= 0 or s_y <= 0:
+            return {
+                "coordinates": [],
+                "footing_calculations": None,
+                "shear_check": None,
+                "error": "Invalid input: number of piles and spacing must be positive."
+            }
         coords = generate_pile_coordinates(n_x, s_x, n_y, s_y)
+        # Validate coordinate generation
+        if not coords:
+            return {
+                "coordinates": [],
+                "footing_calculations": None,
+                "shear_check": None,
+                "error": "Failed to generate pile coordinates. Please check your input values for grid size and spacing."
+            }
         print(f"Generated {len(coords)} pile coordinates")
         shear_check = None
         footing_calculations = None
         # Always perform calculations and include details in response
         if latest_reactions:
-            load_cases = [r.load_case for r in latest_reactions]
+            load_cases = [r['load_case'] for r in latest_reactions]
             print(f"Using load cases: {load_cases}")
             class_inputs = DesignInputs(
                 fc=fc, fy=fy, cover=cover, col_x_dim=col_x_dim, col_y_dim=col_y_dim, 
@@ -318,7 +372,9 @@ async def get_pile_coords(n_x: int, s_x: float, n_y: int, s_y: float, with_calcu
             }
         else:
             print("No reactions data available - cannot calculate forces")
+        # Always return all three keys, even if some are None
         return {"coordinates": coords, "footing_calculations": footing_calculations, "shear_check": shear_check}
     except Exception as e:
         print(f"Error in /api/pile-coordinates: {e}")
-        return {"error": str(e)}
+        # Always return all three keys, even if error
+        return {"coordinates": [], "footing_calculations": None, "shear_check": None, "error": str(e)}
