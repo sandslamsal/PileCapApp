@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enhanced Pile Cap Design - Step by Step</title>
+    <title>Pile Cap Design - Step by Step</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -13,10 +14,10 @@
         }
 
         body {
-            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.6;
-            color: #333;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #2c3e50;
+            background: #f8f9fa;
             min-height: 100vh;
             padding: 20px;
         }
@@ -25,29 +26,105 @@
             max-width: 1200px;
             margin: 0 auto;
             background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            border: 1px solid #e1e8ed;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             overflow: hidden;
         }
 
         .header {
-            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            background: #1a365d;
             color: white;
-            padding: 30px;
+            padding: 24px 30px;
             text-align: center;
+            border-bottom: 3px solid #2a69ac;
         }
 
         .header h1 {
-            font-family: 'Inter', sans-serif;
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            font-weight: 600;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 2.2rem;
+            margin-bottom: 8px;
+            font-weight: 700;
+            letter-spacing: -0.025em;
         }
 
         .header p {
-            font-size: 1.1rem;
+            font-size: 1rem;
             opacity: 0.9;
             font-weight: 400;
+            margin: 0;
+        }
+
+        /* Elevation Visualization Styles */
+        .elevation-container {
+            background: #f8f9fa;
+            border-bottom: 1px solid #e1e8ed;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .elevation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .elevation-header h3 {
+            margin: 0;
+            color: #2c3e50;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .view-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            background: #2a69ac;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-small:hover {
+            background: #1e5a96;
+        }
+
+        #plot3d {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .elevation-legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 2px;
+            border: 1px solid #ccc;
         }
 
         .phase-indicator {
@@ -584,34 +661,30 @@
 
         /* Phase Headers and Content */
         .phase-header {
-            background: linear-gradient(135deg, #3498db, #2980b9);
+            background: #2a69ac;
             color: white;
-            padding: 20px 30px;
-            margin: 20px 0 0 0;
-            border-radius: 12px 12px 0 0;
+            padding: 18px 24px;
+            margin: 16px 0 0 0;
+            border-radius: 6px 6px 0 0;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            font-family: 'Inter', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             font-weight: 600;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+            transition: all 0.2s ease;
+            border: 1px solid #1e5a96;
         }
 
         .phase-header:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+            background: #1e5a96;
+            border-color: #1a4f82;
         }
 
         .phase-header h2 {
             margin: 0;
             font-size: 1.4rem;
-        }
-
-        .phase-icon {
-            font-size: 1.5rem;
-            margin-right: 15px;
+            font-weight: 600;
         }
 
         .toggle-arrow {
@@ -621,11 +694,11 @@
 
         .phase-content {
             background: white;
-            border: 2px solid #e9ecef;
+            border: 1px solid #e1e8ed;
             border-top: none;
-            border-radius: 0 0 12px 12px;
-            padding: 30px;
-            margin-bottom: 20px;
+            border-radius: 0 0 6px 6px;
+            padding: 24px;
+            margin-bottom: 16px;
             display: none;
         }
 
@@ -893,31 +966,53 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Enhanced Pile Cap Design</h1>
-            <p>Professional Structural Analysis - Step by Step Implementation</p>
+            <h1>Pile Cap Design</h1>
+            <p>Structural Analysis - Step by Step Implementation</p>
         </div>
         
-        <div class="phase-indicator">
-            Phase 1: Design Data Input & Pile Coordinate Generation
+        <!-- 3D Interactive Visualization -->
+        <div class="elevation-container">
+            <div class="elevation-header">
+                <h3>Interactive 3D Structure View</h3>
+                <div class="view-controls">
+                    <button onclick="resetView()" class="btn-small">Reset View</button>
+                    <button onclick="topView()" class="btn-small">Top View</button>
+                    <button onclick="sideView()" class="btn-small">Side View</button>
+                </div>
+            </div>
+            <div id="plot3d" style="width:100%; height:500px;"></div>
+            <div class="elevation-legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #87CEEB;"></div>
+                    <span>Water Level</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #8B4513;"></div>
+                    <span>Soil</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #C0C0C0;"></div>
+                    <span>Concrete</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #2F4F4F;"></div>
+                    <span>Steel Column</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #FF6B6B;"></div>
+                    <span>Piles</span>
+                </div>
+            </div>
         </div>
-
+        
         <div class="content">
             <!-- Phase 1: Design Parameters -->
             <div class="phase-header" onclick="togglePhase(1)">
-                <span class="phase-icon">📐</span>
-                <h2>Phase 1: Design Data Input & Pile Coordinate Generation</h2>
+                <h2>Step 1: Design Data Input & Pile Coordinate Generation</h2>
                 <span class="toggle-arrow" id="arrow1">▼</span>
             </div>
             
             <div class="phase-content" id="phase1">
-                <h2 class="section-title">Step 1: Design Data Input Section</h2>
-                
-                <div class="description">
-                <h3>Design Parameters Setup</h3>
-                <p>This first phase establishes all the fundamental design parameters for our pile cap analysis. We're setting up material properties, geometric dimensions, site conditions, and pile configuration.</p>
-                <p><strong>Key Components:</strong> Material properties (concrete & steel), column dimensions, footing geometry, pile layout, and site elevations.</p>
-            </div>
-
             <div class="parameter-grid">
                 <div class="parameter-category">
                     <h4>Material Properties</h4>
@@ -1053,20 +1148,11 @@
 
             <!-- Phase 2: Load Cases -->
             <div class="phase-header" onclick="togglePhase(2)">
-                <span class="phase-icon">⚖️</span>
-                <h2>Phase 2: Load Cases Data Input</h2>
+                <h2>Step 2: Load Cases Data Input</h2>
                 <span class="toggle-arrow" id="arrow2">▼</span>
             </div>
             
             <div class="phase-content" id="phase2">
-                <h2 class="section-title">Step 2: Load Cases Input</h2>
-                
-                <div class="description">
-                    <h3>Load Cases Configuration</h3>
-                    <p>Import load cases with forces and moments at the top of footing at column centroid. You can use the default data provided or import from Excel/CSV files.</p>
-                    <p><strong>Columns:</strong> Load Case, Factor, Fx (k), Fy (k), Fz (k), Mx (k-ft), My (k-ft)</p>
-                </div>
-
                 <div class="load-controls">
                     <div class="control-buttons">
                         <button id="useDefaultData" class="btn btn-primary">Use Default Load Cases</button>
@@ -1125,22 +1211,13 @@
                 </div>
             </div>
 
-            <!-- Phase 3: Force Distribution Analysis -->
+            <!-- Step 3: Force Distribution Analysis -->
             <div class="phase-header" onclick="togglePhase(3)">
-                <span class="phase-icon">📊</span>
-                <h2>Phase 3: Pile Force Distribution Analysis</h2>
+                <h2>Step 3: Pile Force Distribution Analysis</h2>
                 <span class="toggle-arrow" id="arrow3">▼</span>
             </div>
             
             <div class="phase-content" id="phase3">
-                <h2 class="section-title">Step 3: Force Distribution Analysis</h2>
-                
-                <div class="description">
-                    <h3>Pile Group Analysis</h3>
-                    <p>Calculate pile group centroids, distribute loads to individual piles, and determine maximum and minimum forces for each pile based on all load cases.</p>
-                    <p><strong>Analysis includes:</strong> Centroid calculations, moment distribution, axial force distribution, and pile force summary.</p>
-                </div>
-
                 <div class="analysis-controls">
                     <button id="runAnalysis" class="btn btn-primary">Run Force Distribution Analysis</button>
                     <button id="downloadResults" class="btn btn-secondary" style="display: none;">Download Results</button>
@@ -1215,7 +1292,7 @@
                             <!-- Enhanced Color Scale Legend -->
                             <div id="colorScale">
                                 <div style="font-weight: 700; margin-bottom: 12px; color: #2c3e50; text-align: center; font-size: 13px;">
-                                    📊 Force Distribution
+                                    Force Distribution
                                 </div>
                                 
                                 <!-- Horizontal gradient bar -->
@@ -1258,7 +1335,7 @@
                                     <span>Piles</span>
                                 </div>
                                 <div style="font-size: 11px; color: #7f8c8d; margin-top: 12px; font-style: italic;">
-                                    💡 Hover over piles for details
+                                    Hover over piles for details
                                 </div>
                             </div>
                         </div>
@@ -1284,17 +1361,16 @@
                 </div>
             </div>
 
-            <!-- Phase 4: Structural Design Calculations -->
+            <!-- Step 4: Structural Design Calculations -->
             <div class="phase-header" onclick="togglePhase(4)">
-                <span class="phase-icon">🔧</span>
-                <h2>Phase 4: Structural Design Calculations</h2>
+                <h2>Step 4: Structural Design Calculations</h2>
                 <span class="toggle-arrow" id="arrow4">▼</span>
             </div>
             
             <div class="phase-content" id="phase4">
                 <!-- One-Way Shear Check Section -->
                 <div class="calculation-section">
-                    <h3>🔨 One-Way Shear Capacity Check</h3>
+                    <h3>One-Way Shear Capacity Check</h3>
                     <div class="formula-box">
                         <h4>Shear Capacity Formulas (LRFD 5.8.3.3)</h4>
                         <div class="formula">
@@ -1364,7 +1440,7 @@
 
                 <!-- Flexural Design Section -->
                 <div class="calculation-section">
-                    <h3>📐 Flexural Moment Design</h3>
+                    <h3>Flexural Moment Design</h3>
                     <div class="formula-box">
                         <h4>Flexural Design Formulas</h4>
                         <div class="formula">
@@ -1386,7 +1462,7 @@
                     </div>
                     
                     <button onclick="calculateFlexuralDesign()" class="calc-button">
-                        📊 Calculate Flexural Reinforcement
+                        Calculate Flexural Reinforcement
                     </button>
                     
                     <div id="flexuralResults" class="results-section" style="display: none;">
@@ -1428,6 +1504,280 @@
         let loadCasesData = [];
         let pileCoordinates = [];
         let analysisResultsData = {};
+
+        // Interactive 3D Visualization with Plotly
+        function draw3DView() {
+            // Get input values with defaults
+            const waterElev = parseFloat(document.getElementById('water_elev')?.value || 95);
+            const topFootingElev = parseFloat(document.getElementById('top_footing_elev')?.value || 90);
+            const footingThick = parseFloat(document.getElementById('footing_thick')?.value || 4);
+            const pileLength = parseFloat(document.getElementById('pile_length')?.value || 50);
+            const columnWidth = parseFloat(document.getElementById('column_width')?.value || 3);
+            const columnDepth = parseFloat(document.getElementById('column_depth')?.value || 3);
+            const footingWidth = parseFloat(document.getElementById('footing_width')?.value || 15);
+            const footingLength = parseFloat(document.getElementById('footing_length')?.value || 15);
+            const numPilesX = parseInt(document.getElementById('piles_x')?.value || 3);
+            const numPilesY = parseInt(document.getElementById('piles_y')?.value || 3);
+            const spacingX = parseFloat(document.getElementById('spacing_x')?.value || 6);
+            const spacingY = parseFloat(document.getElementById('spacing_y')?.value || 6);
+            const pileDiameter = parseFloat(document.getElementById('pile_diameter')?.value || 1.5);
+            
+            // Calculate elevations
+            const bottomFootingElev = topFootingElev - footingThick;
+            const topPileElev = bottomFootingElev;
+            const bottomPileElev = topPileElev - pileLength;
+            
+            const data = [];
+            
+            // Create pile coordinates
+            const pileCoords = [];
+            for (let i = 0; i < numPilesX; i++) {
+                for (let j = 0; j < numPilesY; j++) {
+                    const x = (i - (numPilesX - 1) / 2) * spacingX;
+                    const y = (j - (numPilesY - 1) / 2) * spacingY;
+                    pileCoords.push({ x, y });
+                }
+            }
+            
+            // Draw piles as cylinders
+            pileCoords.forEach((pile, index) => {
+                const pileRadius = pileDiameter / 2;
+                const theta = [];
+                const xPile = [];
+                const yPile = [];
+                const zTop = [];
+                const zBottom = [];
+                
+                // Create cylinder coordinates
+                for (let i = 0; i <= 20; i++) {
+                    const angle = (i / 20) * 2 * Math.PI;
+                    theta.push(angle);
+                    xPile.push(pile.x + pileRadius * Math.cos(angle));
+                    yPile.push(pile.y + pileRadius * Math.sin(angle));
+                    zTop.push(topPileElev);
+                    zBottom.push(bottomPileElev);
+                }
+                
+                // Top circle of pile
+                data.push({
+                    x: xPile,
+                    y: yPile,
+                    z: zTop,
+                    type: 'scatter3d',
+                    mode: 'lines',
+                    line: { color: '#FF6B6B', width: 4 },
+                    name: `Pile ${index + 1} Top`,
+                    showlegend: false,
+                    hovertemplate: `Pile ${index + 1}<br>Top Elevation: ${topPileElev.toFixed(1)}'<extra></extra>`
+                });
+                
+                // Bottom circle of pile
+                data.push({
+                    x: xPile,
+                    y: yPile,
+                    z: zBottom,
+                    type: 'scatter3d',
+                    mode: 'lines',
+                    line: { color: '#FF6B6B', width: 4 },
+                    name: `Pile ${index + 1} Bottom`,
+                    showlegend: false,
+                    hovertemplate: `Pile ${index + 1}<br>Bottom Elevation: ${bottomPileElev.toFixed(1)}'<extra></extra>`
+                });
+                
+                // Vertical lines connecting top and bottom
+                for (let i = 0; i < xPile.length; i += 5) {
+                    data.push({
+                        x: [xPile[i], xPile[i]],
+                        y: [yPile[i], yPile[i]],
+                        z: [topPileElev, bottomPileElev],
+                        type: 'scatter3d',
+                        mode: 'lines',
+                        line: { color: '#FF6B6B', width: 2 },
+                        showlegend: false,
+                        hoverinfo: 'skip'
+                    });
+                }
+            });
+            
+            // Draw pile cap/footing as a box
+            const footingX = [-footingWidth/2, footingWidth/2, footingWidth/2, -footingWidth/2, -footingWidth/2];
+            const footingY = [-footingLength/2, -footingLength/2, footingLength/2, footingLength/2, -footingLength/2];
+            
+            // Top of footing
+            data.push({
+                x: footingX,
+                y: footingY,
+                z: Array(5).fill(topFootingElev),
+                type: 'scatter3d',
+                mode: 'lines',
+                line: { color: '#C0C0C0', width: 6 },
+                name: 'Footing Top',
+                showlegend: false,
+                hovertemplate: `Pile Cap Top<br>Elevation: ${topFootingElev.toFixed(1)}'<br>Thickness: ${footingThick.toFixed(1)}'<extra></extra>`
+            });
+            
+            // Bottom of footing
+            data.push({
+                x: footingX,
+                y: footingY,
+                z: Array(5).fill(bottomFootingElev),
+                type: 'scatter3d',
+                mode: 'lines',
+                line: { color: '#A0A0A0', width: 6 },
+                name: 'Footing Bottom',
+                showlegend: false,
+                hovertemplate: `Pile Cap Bottom<br>Elevation: ${bottomFootingElev.toFixed(1)}'<extra></extra>`
+            });
+            
+            // Vertical edges of footing
+            footingX.slice(0, 4).forEach((x, i) => {
+                const y = footingY[i];
+                data.push({
+                    x: [x, x],
+                    y: [y, y],
+                    z: [bottomFootingElev, topFootingElev],
+                    type: 'scatter3d',
+                    mode: 'lines',
+                    line: { color: '#B0B0B0', width: 4 },
+                    showlegend: false,
+                    hoverinfo: 'skip'
+                });
+            });
+            
+            // Draw column
+            const columnX = [-columnWidth/2, columnWidth/2, columnWidth/2, -columnWidth/2, -columnWidth/2];
+            const columnY = [-columnDepth/2, -columnDepth/2, columnDepth/2, columnDepth/2, -columnDepth/2];
+            
+            data.push({
+                x: columnX,
+                y: columnY,
+                z: Array(5).fill(topFootingElev),
+                type: 'scatter3d',
+                mode: 'lines',
+                line: { color: '#2F4F4F', width: 8 },
+                name: 'Column',
+                showlegend: false,
+                hovertemplate: `Column Base<br>Width: ${columnWidth.toFixed(1)}'<br>Depth: ${columnDepth.toFixed(1)}'<extra></extra>`
+            });
+            
+            // Water level plane (if above bottom pile)
+            if (waterElev > bottomPileElev) {
+                const waterSize = Math.max(footingWidth, footingLength) * 1.5;
+                const waterX = [-waterSize/2, waterSize/2, waterSize/2, -waterSize/2];
+                const waterY = [-waterSize/2, -waterSize/2, waterSize/2, waterSize/2];
+                
+                data.push({
+                    x: waterX,
+                    y: waterY,
+                    z: Array(4).fill(waterElev),
+                    type: 'mesh3d',
+                    opacity: 0.3,
+                    color: '#87CEEB',
+                    name: 'Water Level',
+                    showlegend: false,
+                    hovertemplate: `Water Level<br>Elevation: ${waterElev.toFixed(1)}'<extra></extra>`
+                });
+            }
+            
+            // Soil representation (simplified as boundary lines)
+            const soilSize = Math.max(footingWidth, footingLength) * 2;
+            const soilBoundary = [-soilSize/2, soilSize/2, soilSize/2, -soilSize/2, -soilSize/2];
+            
+            data.push({
+                x: soilBoundary,
+                y: soilBoundary,
+                z: Array(5).fill(bottomPileElev - 5),
+                type: 'scatter3d',
+                mode: 'lines',
+                line: { color: '#8B4513', width: 3 },
+                name: 'Soil Boundary',
+                showlegend: false,
+                hovertemplate: `Soil Level<br>Elevation: ${(bottomPileElev - 5).toFixed(1)}'<extra></extra>`
+            });
+            
+            // Layout configuration
+            const layout = {
+                scene: {
+                    xaxis: {
+                        title: 'X Distance (ft)',
+                        showgrid: true,
+                        gridcolor: '#E0E0E0'
+                    },
+                    yaxis: {
+                        title: 'Y Distance (ft)',
+                        showgrid: true,
+                        gridcolor: '#E0E0E0'
+                    },
+                    zaxis: {
+                        title: 'Elevation (ft)',
+                        showgrid: true,
+                        gridcolor: '#E0E0E0'
+                    },
+                    camera: {
+                        eye: { x: 1.5, y: 1.5, z: 1.2 },
+                        center: { x: 0, y: 0, z: 0 }
+                    },
+                    bgcolor: '#F8F9FA',
+                    aspectmode: 'manual',
+                    aspectratio: { x: 1, y: 1, z: 0.7 }
+                },
+                margin: { l: 0, r: 0, b: 0, t: 30 },
+                title: {
+                    text: `Pile Cap 3D View - ${numPilesX}×${numPilesY} Piles @ ${spacingX}'×${spacingY}' O.C.`,
+                    font: { size: 14, color: '#2c3e50' }
+                },
+                showlegend: false,
+                hovermode: 'closest'
+            };
+            
+            // Configuration
+            const config = {
+                displayModeBar: true,
+                modeBarButtonsToRemove: ['pan2d', 'select2d', 'lasso2d', 'autoScale2d'],
+                displaylogo: false,
+                responsive: true
+            };
+            
+            // Create the plot
+            Plotly.newPlot('plot3d', data, layout, config);
+        }
+
+        // View control functions
+        function resetView() {
+            const update = {
+                'scene.camera.eye': { x: 1.5, y: 1.5, z: 1.2 },
+                'scene.camera.center': { x: 0, y: 0, z: 0 }
+            };
+            Plotly.relayout('plot3d', update);
+        }
+
+        function topView() {
+            const update = {
+                'scene.camera.eye': { x: 0, y: 0, z: 2.5 },
+                'scene.camera.center': { x: 0, y: 0, z: 0 }
+            };
+            Plotly.relayout('plot3d', update);
+        }
+
+        function sideView() {
+            const update = {
+                'scene.camera.eye': { x: 2.5, y: 0, z: 0 },
+                'scene.camera.center': { x: 0, y: 0, z: 0 }
+            };
+            Plotly.relayout('plot3d', update);
+        }
+
+        // Function to update 3D view when inputs change
+        function update3DView() {
+            if (typeof Plotly !== 'undefined') {
+                draw3DView();
+            }
+        }
+
+        // Initialize 3D view on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(draw3DView, 500); // Delay to ensure Plotly is loaded
+        });
 
         // Generate pile coordinates based on input parameters
         function generatePileCoordinates() {
@@ -2318,7 +2668,7 @@
             
             content.innerHTML = `
                 <div style="font-family: 'Inter', sans-serif; font-weight: 700; margin-bottom: 12px; color: #3498db; font-size: 14px; text-align: center; padding-bottom: 8px; border-bottom: 2px solid #e9ecef;">
-                    🔧 Pile #${pile.pileNo}
+                    Pile #${pile.pileNo}
                 </div>
                 <div style="font-family: 'Inter', sans-serif; margin-bottom: 6px; display: flex; justify-content: space-between;">
                     <span style="color: #6c757d; font-weight: 500;">📍 Position:</span> 
@@ -2391,7 +2741,7 @@
             updateVisualization();
         }
 
-        // Phase 4: Structural Design Calculations
+        // Step 4: Structural Design Calculations
         
         // One-Way Shear Capacity Calculation
         function calculateOneWayShear() {
@@ -2473,10 +2823,10 @@
                     <span class="result-value">${Vuy2.toFixed(2)} kips</span>
                 </div>
                 <div class="safety-check ${safe_x ? 'safe' : 'unsafe'}">
-                    X-Direction: ${safe_x ? '✅ SAFE' : '❌ NOT SAFE'}
+                    X-Direction: ${safe_x ? 'SAFE' : 'NOT SAFE'}
                 </div>
                 <div class="safety-check ${safe_y ? 'safe' : 'unsafe'}">
-                    Y-Direction: ${safe_y ? '✅ SAFE' : '❌ NOT SAFE'}
+                    Y-Direction: ${safe_y ? 'SAFE' : 'NOT SAFE'}
                 </div>
             `;
 
@@ -2563,7 +2913,7 @@
                     <span class="result-value">${dcRatio.toFixed(3)}</span>
                 </div>
                 <div class="safety-check ${safe ? 'safe' : 'unsafe'}">
-                    Punching Shear: ${safe ? '✅ SAFE' : '❌ NOT SAFE'}
+                    Punching Shear: ${safe ? 'SAFE' : 'NOT SAFE'}
                 </div>
             `;
 
@@ -2735,11 +3085,11 @@
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 25px 0;">
                     <div class="safety-check safe">
-                        ✅ Analysis Complete<br>
+                        Analysis Complete<br>
                         All structural checks performed according to LRFD specifications
                     </div>
                     <div class="safety-check" style="background: rgba(52, 152, 219, 0.1); border-color: #3498db; color: #2980b9;">
-                        📊 Ready for Final Design<br>
+                        Ready for Final Design<br>
                         Review all calculations and verify safety factors
                     </div>
                 </div>
@@ -2781,8 +3131,24 @@
         document.getElementById('addRow').addEventListener('click', addNewRow);
         document.getElementById('runAnalysis').addEventListener('click', runForceDistributionAnalysis);
 
+        // Add event listeners for 3D view updates
+        const elevationInputs = [
+            'water_elev', 'top_footing_elev', 'footing_thick', 'pile_length',
+            'column_width', 'column_depth', 'footing_width', 'footing_length',
+            'pile_diameter', 'piles_x', 'piles_y', 'spacing_x', 'spacing_y'
+        ];
+        
+        elevationInputs.forEach(inputId => {
+            const element = document.getElementById(inputId);
+            if (element) {
+                element.addEventListener('input', update3DView);
+                element.addEventListener('change', update3DView);
+            }
+        });
+
         // Initialize with default data on page load
         loadDefaultData();
+        setTimeout(update3DView, 1000); // Update 3D view after loading default data
     </script>
 </body>
 </html>
