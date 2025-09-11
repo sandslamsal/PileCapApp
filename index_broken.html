@@ -1669,18 +1669,57 @@
                 console.log('✅ Visualization created successfully!');
                 
             } catch (error) {
-                console.error('Error in draw3DView:', error);
+                console.error('❌ Error in draw3DView:', error);
+                alert('Error creating 3D visualization: ' + error.message);
             }
         }
-
-        // View control functions
-        function resetView() {
-            const update = {
-                'scene.camera.eye': { x: 1.8, y: 1.8, z: 1.5 },
-                'scene.camera.center': { x: 0, y: 0, z: 0 }
-            };
-            Plotly.relayout('plot3d', update);
-        }
+            
+            // Step 1: Material Properties
+            const concreteFc = parseFloat(document.getElementById('concrete_fc')?.value || 5.5);
+            const steelFy = parseFloat(document.getElementById('steel_fy')?.value || 60);
+            const cover = parseFloat(document.getElementById('cover')?.value || 4.0);
+            
+            // Step 2: Column Dimensions & Loading
+            const columnX = parseFloat(document.getElementById('column_x')?.value || 14.00);
+            const columnY = parseFloat(document.getElementById('column_y')?.value || 9.00);
+            const eccX = parseFloat(document.getElementById('ecc_x')?.value || 0);
+            const eccY = parseFloat(document.getElementById('ecc_y')?.value || 0);
+            
+            // Step 3: Footing Dimensions
+            const footingThickness = parseFloat(document.getElementById('footing_thickness')?.value || 9);
+            const pileEmbedment = parseFloat(document.getElementById('pile_embedment')?.value || 12);
+            const pileOverhang = parseFloat(document.getElementById('pile_overhang')?.value || 19.5);
+            
+            // Step 4: Site Conditions
+            const groundElevation = parseFloat(document.getElementById('ground_elevation')?.value || 73.4);
+            const footingTopElevation = parseFloat(document.getElementById('footing_top_elevation')?.value || 70.4);
+            const waterElevation = parseFloat(document.getElementById('water_elevation')?.value || 68.0);
+            const soilWeight = parseFloat(document.getElementById('soil_weight')?.value || 0.115);
+            
+            // Step 5: Pile Layout
+            const pileNoX = parseInt(document.getElementById('pile_no_x')?.value || 8);
+            const pileNoY = parseInt(document.getElementById('pile_no_y')?.value || 6);
+            const pileSpacingX = parseFloat(document.getElementById('pile_spacing_x')?.value || 4.15);
+            const pileSpacingY = parseFloat(document.getElementById('pile_spacing_y')?.value || 3.75);
+            const pileDiameter = parseFloat(document.getElementById('pile_diameter')?.value || 15);
+            
+            // Step 6: Pile Capacity
+            const bearingCapacity = parseFloat(document.getElementById('bearing_capacity')?.value || 270);
+            const sideFriction = parseFloat(document.getElementById('side_friction')?.value || 270);
+            
+            // Calculate derived dimensions
+            const footingBottomElevation = footingTopElevation - footingThickness;
+            const pileTopElevation = footingBottomElevation;
+            const pileLength = pileEmbedment + footingThickness; // Total pile length
+            const pileBottomElevation = pileTopElevation - pileLength;
+            
+            // Calculate footing dimensions based on pile layout and overhang
+            const footingWidth = (pileNoX - 1) * pileSpacingX + 2 * pileOverhang;
+            const footingLength = (pileNoY - 1) * pileSpacingY + 2 * pileOverhang;
+            
+            // Column height - typical 9 ft above footing
+            const columnHeight = 9;
+            const columnTopElevation = footingTopElevation + columnHeight;
             
             console.log(`Creating ${pileNoX}x${pileNoY} piles with ${pileDiameter}" diameter`);
             console.log(`Footing: ${footingWidth.toFixed(1)}' x ${footingLength.toFixed(1)}' x ${footingThickness.toFixed(1)}'`);
@@ -2056,6 +2095,11 @@
             };
             
             Plotly.newPlot('plot3d', data, layout, config);
+            
+            } catch (error) {
+                console.error('Error in draw3DView:', error);
+            }
+        }
 
         // View control functions
         function resetView() {
