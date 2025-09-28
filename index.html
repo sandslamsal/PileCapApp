@@ -262,9 +262,54 @@
             border-radius: 4px;
             pointer-events: none;
             display: none;
-            z-index: 1000;
+            z-index: 5;
             font-size: 0.85rem;
         }
+
+        /* Keep the two overlays in opposite corners and non-overlapping */
+        #visualizationLegend{
+            top: 16px !important;
+            right: 16px !important;
+            z-index: 3;
+            pointer-events: none;
+        }
+
+        #colorScale{
+            bottom: 16px !important;
+            left: 16px !important;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        /* On narrow screens, stack: move legend below color scale */
+        @media (max-width: 700px){
+            #visualizationLegend{
+                top: auto !important;
+                right: 16px !important;
+                bottom: 16px !important;
+            }
+        }
+
+        /* Give overlays breathing room */
+        #forceVisualization{ padding: 6px; }
+
+        /* Let the tooltip fully show inside the visualization box */
+        #forceVisualization { overflow: visible !important; }
+
+        /* These two overlays shouldn't eat mouse events or overlap awkwardly */
+        #visualizationLegend, #colorScale { pointer-events: none; }
+
+        /* Tooltip above everything */
+        #hoverTooltip { z-index: 1000; }
+
+        /* Let the tooltip fully show inside the visualization box */
+        #forceVisualization { overflow: visible !important; }
+
+        /* These two overlays shouldn't eat mouse events or overlap awkwardly */
+        #visualizationLegend, #colorScale { pointer-events: none; }
+
+        /* Tooltip above everything */
+        #hoverTooltip { z-index: 1000; }
 
         .phase-indicator {
             background: #34495e;
@@ -1100,6 +1145,17 @@
                 grid-template-columns: 1fr;
             }
         }
+        
+        /* --- Always-expanded steps; remove expand affordances --- */
+        .phase-header { cursor: default; }
+        .toggle-arrow { display: none !important; }   /* hide the ▼ in headers */
+        .phase-content { display: block !important; } /* keep content open */
+
+        /* --- Hide the "Phase X Complete!" ribbons & misc filler --- */
+        .next-step { display: none !important; }
+
+        /* Optional: de-emphasize any blank results shells (just in case) */
+        .results-section:empty { display: none !important; }
     </style>
 </head>
 <body>
@@ -1428,55 +1484,7 @@
                                 <div id="tooltipContent"></div>
                             </div>
                             
-                            <!-- Enhanced Color Scale Legend -->
-                            <div id="colorScale">
-                                <div style="font-weight: 700; margin-bottom: 12px; color: #2c3e50; text-align: center; font-size: 13px;">
-                                    Force Distribution
-                                </div>
-                                
-                                <!-- Horizontal gradient bar -->
-                                <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                                    <div style="width: 120px; height: 20px; background: linear-gradient(to right, #27ae60, #f1c40f, #e74c3c); border: 2px solid #bdc3c7; border-radius: 10px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.15);"></div>
-                                </div>
-                                
-                                <!-- Force value labels -->
-                                <div style="display: flex; justify-content: space-between; width: 120px; font-size: 10px; font-weight: 600; margin-bottom: 8px;">
-                                    <span id="minForceLabel" style="color: #27ae60;">Min</span>
-                                    <span id="midForceLabel" style="color: #f39c12;">Mid</span>
-                                    <span id="maxForceLabel" style="color: #e74c3c;">Max</span>
-                                </div>
-                                
-                                <!-- Description labels -->
-                                <div style="display: flex; justify-content: space-between; width: 120px; font-size: 9px; color: #7f8c8d;">
-                                    <span>Low</span>
-                                    <span>Medium</span>
-                                    <span>High</span>
-                                </div>
-                                
-                                <div style="text-align: center; margin-top: 10px; font-size: 10px; color: #6c757d; font-style: italic;">
-                                    Force in kips
-                                </div>
-                            </div>
-                            
-                            <!-- Legend -->
-                            <div id="visualizationLegend">
-                                <div style="font-weight: 600; margin-bottom: 10px; color: #2c3e50;">Legend</div>
-                                <div style="margin-bottom: 8px; display: flex; align-items: center;">
-                                    <span style="color: #e74c3c; font-weight: bold; margin-right: 8px;">■</span>
-                                    <span>Column</span>
-                                </div>
-                                <div style="margin-bottom: 8px; display: flex; align-items: center;">
-                                    <span style="color: #3498db; font-weight: bold; margin-right: 8px;">- -</span>
-                                    <span>Footing</span>
-                                </div>
-                                <div style="margin-bottom: 8px; display: flex; align-items: center;">
-                                    <span style="color: #333; font-weight: bold; margin-right: 8px;">●</span>
-                                    <span>Piles</span>
-                                </div>
-                                <div style="font-size: 11px; color: #7f8c8d; margin-top: 12px; font-style: italic;">
-                                    Hover over piles for details
-                                </div>
-                            </div>
+
                         </div>
                         
                         <div class="visualization-controls">
@@ -1507,6 +1515,136 @@
             </div>
             
             <div class="phase-content" id="phase4">
+                <!-- 🔧 Factored Demand Inputs (Step 4) -->
+                <div class="calculation-section" id="demandInputs">
+                  <h3>Factored Demands (from analysis)</h3>
+                  <div class="parameter-grid">
+                    <div class="parameter-category">
+                      <h4>One-Way Shear (per-ft strip)</h4>
+                      <div class="parameter">
+                        <label for="VuOneWayPerFt">V<sub>u</sub> (kips/ft):</label>
+                        <input type="number" id="VuOneWayPerFt" value="45" step="0.1" />
+                      </div>
+                      <p style="font-size:.9rem;color:#6c757d;margin-top:6px;">
+                        Use demand at a section located d<sub>v</sub> from the face.
+                      </p>
+                    </div>
+
+                    <div class="parameter-category">
+                      <h4>Punching (Two-Way) Shear</h4>
+                      <div class="parameter">
+                        <label for="VuPunchKips">V<sub>u</sub> (kips):</label>
+                        <input type="number" id="VuPunchKips" value="500" step="1" />
+                      </div>
+                      <p style="font-size:.9rem;color:#6c757d;margin-top:6px;">
+                        Demand on critical perimeter at d<sub>v</sub>/2 from faces.
+                      </p>
+                    </div>
+
+                    <div class="parameter-category">
+                      <h4>Flexure</h4>
+                      <div class="parameter">
+                        <label for="MuKipFt">M<sub>u</sub> (kip-ft):</label>
+                        <input type="number" id="MuKipFt" value="200" step="1" />
+                      </div>
+                      <p style="font-size:.9rem;color:#6c757d;margin-top:6px;">
+                        Provide governing factored moment for the design strip.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 🔎 Pull demands from a selected Load Case -->
+                <div class="calculation-section" id="lcPickerBlock">
+                  <h3>Pull Demands from Load Case</h3>
+                  <div class="parameter-grid">
+                    <div class="parameter-category">
+                      <h4>Select Source</h4>
+                      <div class="parameter">
+                        <label for="lcPicker">Load Case:</label>
+                        <select id="lcPicker"></select>
+                      </div>
+                      <div class="parameter">
+                        <label for="stripDir">Strip Direction:</label>
+                        <select id="stripDir">
+                          <option value="X">X (span along X; use M<sub>y</sub>)</option>
+                          <option value="Y">Y (span along Y; use M<sub>x</sub>)</option>
+                        </select>
+                      </div>
+                      <button class="btn btn-primary" id="applyFromLC" type="button">Use from Selected LC</button>
+                      <p style="font-size:.9rem;color:#6c757d;margin-top:8px;">
+                        One-way V<sub>u</sub> per-ft ≈ |F<sub>z</sub>| divided by cap width in the chosen strip direction.<br>
+                        Punching V<sub>u</sub> ≈ |F<sub>z</sub>| at the column.<br>
+                        Strip moment M<sub>u</sub> per-ft ≈ |M<sub>dir⊥</sub>| divided by cap width ⟂ to strip.
+                      </p>
+                      <div id="lcPickerNote" style="color:#6c757d;font-size:.9rem;margin-top:6px;"></div>
+                    </div>
+                    <div class="parameter-category">
+                      <h4>Cap Dimensions (derived)</h4>
+                      <div class="parameter"><label>Cap Length (X):</label><div id="capLenXLabel">—</div></div>
+                      <div class="parameter"><label>Cap Width (Y):</label><div id="capLenYLabel">—</div></div>
+                      <div class="parameter"><label>Overhang (each side):</label><div id="capOverhangLabel">—</div></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- ✂️ One-Way Shear Slicer -->
+                <div class="calculation-section" id="oneWaySlicer">
+                  <h3>One-Way Shear Slicer (uses pile reactions from selected LC)</h3>
+                  <div class="parameter-grid">
+                    <div class="parameter-category">
+                      <h4>Slice Setup</h4>
+                      <div class="parameter">
+                        <label for="sliceLC">Load Case:</label>
+                        <select id="sliceLC"></select>
+                      </div>
+                      <div class="parameter">
+                        <label for="sliceDir">Strip Direction:</label>
+                        <select id="sliceDir">
+                          <option value="X">X (section parallel to Y)</option>
+                          <option value="Y">Y (section parallel to X)</option>
+                        </select>
+                      </div>
+                      <div class="parameter">
+                        <label for="sliceSide">Which side contributes:</label>
+                        <select id="sliceSide">
+                          <option value="+">Positive side (+X or +Y)</option>
+                          <option value="-">Negative side (-X or -Y)</option>
+                        </select>
+                      </div>
+                      <div class="parameter">
+                        <label for="sliceOffset">Cut offset from column face (in):</label>
+                        <input type="number" id="sliceOffset" value="0" step="1">
+                      </div>
+                      <div class="parameter">
+                        <label for="avgBothSides">
+                          <input type="checkbox" id="avgBothSides" />
+                          Average both sides of the cut
+                        </label>
+                      </div>
+                      <div class="parameter">
+                        <label for="showColumnOutline">
+                          <input type="checkbox" id="showColumnOutline" checked />
+                          Show column outline on canvas
+                        </label>
+                      </div>
+                      <button class="btn btn-primary" id="sliceCompute" type="button">Compute V<sub>u</sub> from Slice</button>
+                      <button class="btn btn-secondary" id="slicePush" type="button" style="margin-left:8px;">Use as V<sub>u</sub> (per-ft)</button>
+                      <p style="font-size:.9rem;color:#6c757d;margin-top:8px;">
+                        Section is placed at <b>d<sub>v</sub></b> from the column face, plus optional offset. The shear is the sum of pile reactions on the chosen side of the cut. Per-ft demand divides by the section length.
+                      </p>
+                      <div id="sliceNote" style="color:#6c757d;font-size:.9rem;margin-top:6px;"></div>
+                    </div>
+                    <div class="parameter-category">
+                      <h4>Slice Result</h4>
+                      <div class="parameter"><label>Cut Location:</label><div id="sliceWhere">—</div></div>
+                      <div class="parameter"><label>V<sub>u</sub> (kips):</label><div id="sliceVuK">—</div></div>
+                      <div class="parameter"><label>Section Length (ft):</label><div id="sliceLenFt">—</div></div>
+                      <div class="parameter"><label>V<sub>u</sub> per-ft (kips/ft):</label><div id="sliceVuPerFt">—</div></div>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- One-Way Shear Check Section -->
                 <div class="calculation-section">
                     <h3>One-Way Shear Capacity Check</h3>
@@ -1644,19 +1782,27 @@ let loadCasesData = [];
 let pileCoordinates = [];
 let analysisResultsData = {};
 
-/* ---------- UI: Phase toggles ---------- */
-function togglePhase(phaseNumber) {
-  const content = document.getElementById(`phase${phaseNumber}`);
-  const arrow = document.getElementById(`arrow${phaseNumber}`);
-  const showing = content.style.display === 'block';
-  content.style.display = showing ? 'none' : 'block';
-  arrow.textContent = showing ? '▼' : '▲';
-}
+/* ---------- UI: Always-expanded phases ---------- */
+// ✅ Disable expand/collapse completely
+function togglePhase(/* phaseNumber */) { /* no-op by design */ }
 
-window.addEventListener('DOMContentLoaded', () => {
-  // start with phases collapsed
-  document.querySelectorAll('.phase-content').forEach(p => p.style.display = 'none');
+// ✅ Ensure all steps are open even if earlier code tried to hide them
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.phase-content').forEach(p => p.style.display = 'block');
+  // Also remove any lingering arrows text, if present
+  document.querySelectorAll('.toggle-arrow').forEach(a => a.textContent = '');
 });
+
+/* ---------- UTILITY: Hide empty analysis summary ---------- */
+function hideIfEmptyAnalysisSummary() {
+  const cards = document.getElementById('analysisSummary'); // the inner grid
+  if (!cards) return;
+  const section = cards.closest('.results-section');
+  if (!section) return;
+  // If the grid has no children or only whitespace, hide the entire section.
+  const hasContent = cards.children && cards.children.length > 0;
+  section.style.display = hasContent ? 'block' : 'none';
+}
 
 /* ---------- 3D VIEW ---------- */
 function draw3DView() {
@@ -1684,9 +1830,17 @@ function draw3DView() {
   const zPileTop = zCapBot;
   const zPileBot = Math.min(pileTipElev, zPileTop - 1e-6);
 
+  // Build pile grid (centered)
+  const pilesXY = [];
+  for (let j = 0; j < nY; j++) {
+    for (let i = 0; i < nX; i++) {
+      pilesXY.push({ id: j*nX + i + 1, x:(i - (nX - 1)/2)*sX, y:(j - (nY - 1)/2)*sY });
+    }
+  }
+
   const data = [];
 
-  // cap
+  // --- Pile Cap (single legend entry) ---
   {
     const xh = footingLength / 2, yh = footingWidth / 2;
     data.push({
@@ -1696,11 +1850,20 @@ function draw3DView() {
       i: [7,0,0,0,4,4,6,6,4,0,3,2],
       j: [3,4,1,2,5,6,5,2,0,1,6,3],
       k: [0,7,2,3,6,7,1,1,5,5,7,6],
-      type: 'mesh3d', color: '#C0C0C0', opacity: 0.98, showlegend: false,
+      type: 'mesh3d',
+      name: 'Pile Cap',
+      legendgroup: 'cap',
+      showlegend: true,
+      color: '#C0C0C0',
+      opacity: 0.95,
+      flatshading: false,
+      lighting: { ambient: 0.6, diffuse: 0.9, specular: 0.25, fresnel: 0.2, roughness: 0.7 },
+      lightposition: { x: 200, y: 100, z: 300 },
       hovertemplate: `Pile Cap<br>${footingLength.toFixed(2)}' × ${footingWidth.toFixed(2)}' × ${footingThick.toFixed(2)}'<extra></extra>`
     });
   }
-  // column
+
+  // --- Column (single legend entry) ---
   {
     const colH = 6.0, xh = columnW/2, yh = columnD/2, zTop = zCapTop + colH;
     data.push({
@@ -1710,11 +1873,19 @@ function draw3DView() {
       i: [7,0,0,0,4,4,6,6,4,0,3,2],
       j: [3,4,1,2,5,6,5,2,0,1,6,3],
       k: [0,7,2,3,6,7,1,1,5,5,7,6],
-      type: 'mesh3d', color: '#2F4F4F', opacity: 0.95, showlegend: false,
+      type: 'mesh3d',
+      name: 'Column',
+      legendgroup: 'column',
+      showlegend: true,
+      color: '#2F4F4F',
+      opacity: 0.98,
+      lighting: { ambient: 0.5, diffuse: 1.0, specular: 0.35, fresnel: 0.3, roughness: 0.6 },
+      lightposition: { x: -100, y: -200, z: 300 },
       hovertemplate: `Column<br>${columnW.toFixed(2)}' × ${columnD.toFixed(2)}' × 6.00'<extra></extra>`
     });
   }
-  // soil
+
+  // --- Soil (subtle) ---
   {
     const soilTop = Math.max(groundElev, zPileBot);
     if (soilTop > zPileBot) {
@@ -1726,12 +1897,18 @@ function draw3DView() {
         i: [7,0,0,0,4,4,6,6,4,0,3,2],
         j: [3,4,1,2,5,6,5,2,0,1,6,3],
         k: [0,7,2,3,6,7,1,1,5,5,7,6],
-        type: 'mesh3d', color: '#8B4513', opacity: 0.22, showlegend: false,
+        type: 'mesh3d',
+        name: 'Soil',
+        legendgroup: 'context',
+        showlegend: true,
+        color: '#8B4513',
+        opacity: 0.15,
         hovertemplate: `Soil<br>Top (ground): ${groundElev.toFixed(2)}'<extra></extra>`
       });
     }
   }
-  // water
+
+  // --- Water (subtle) ---
   if (waterElev > zPileBot) {
     const size = Math.max(footingLength, footingWidth);
     data.push({
@@ -1741,52 +1918,122 @@ function draw3DView() {
       i: [7,0,0,0,4,4,6,6,4,0,3,2],
       j: [3,4,1,2,5,6,5,2,0,1,6,3],
       k: [0,7,2,3,6,7,1,1,5,5,7,6],
-      type: 'mesh3d', color: '#87CEEB', opacity: 0.18, showlegend: false,
-      hovertemplate: `Water<br>Level: ${waterElev.toFixed(2)}'<extra></extra>`
+      type: 'mesh3d',
+      name: 'Water',
+      legendgroup: 'context',
+      showlegend: true,
+      color: '#87CEEB',
+      opacity: 0.12,
+      hovertemplate: `Water level: ${waterElev.toFixed(2)}'<extra></extra>`
     });
   }
-  // piles (rings + verticals)
+
+  // --- Piles: vertical strokes with force-based coloring ---
   const pileRadius = (pileDia_in / 12.0) / 2.0;
-  const piles = [];
-  for (let j = 0; j < nY; j++) {
-    for (let i = 0; i < nX; i++) {
-      piles.push({ x: (i - (nX - 1)/2)*sX, y: (j - (nY - 1)/2)*sY });
+  const maxForces = getPerPileMaxForces();
+  
+  pilesXY.forEach((p, idx) => {
+    // Determine pile color based on force analysis
+    let pileColor = '#1E90FF'; // default blue
+    if (maxForces && maxForces.length > idx) {
+      const minF = Math.min(...maxForces);
+      const maxF = Math.max(...maxForces);
+      const forceRatio = (maxF > minF) ? (maxForces[idx] - minF) / (maxF - minF) : 0;
+      
+      // Match colorscale: green → yellow → red
+      if (forceRatio <= 0.5) {
+        const r = Math.round(39 + (241-39) * (forceRatio * 2));
+        const g = Math.round(174 + (196-174) * (forceRatio * 2));
+        const b = Math.round(96 + (15-96) * (forceRatio * 2));
+        pileColor = `rgb(${r}, ${g}, ${b})`;
+      } else {
+        const r = Math.round(241 + (231-241) * ((forceRatio-0.5) * 2));
+        const g = Math.round(196 + (76-196) * ((forceRatio-0.5) * 2));
+        const b = Math.round(15 + (60-15) * ((forceRatio-0.5) * 2));
+        pileColor = `rgb(${r}, ${g}, ${b})`;
+      }
     }
-  }
-  piles.forEach((p, idx) => {
-    const steps = 24, xRing = [], yRing = [], zTop = [], zBot = [];
-    for (let k = 0; k <= steps; k++) {
-      const ang = (k / steps) * 2 * Math.PI;
-      xRing.push(p.x + pileRadius * Math.cos(ang));
-      yRing.push(p.y + pileRadius * Math.sin(ang));
-      zTop.push(zCapBot);
-      zBot.push(zPileBot);
-    }
-    data.push({ x: xRing, y: yRing, z: zTop, type: 'scatter3d', mode: 'lines',
-      line: { color: '#1E90FF', width: 4 }, showlegend:false,
-      hovertemplate:`Pile ${idx+1}<br>Top Elev: ${zCapBot.toFixed(2)}'<extra></extra>`});
-    data.push({ x: xRing, y: yRing, z: zBot, type: 'scatter3d', mode: 'lines',
-      line: { color: '#1E90FF', width: 4 }, showlegend:false,
-      hovertemplate:`Pile ${idx+1}<br>Tip Elev: ${zPileBot.toFixed(2)}'<extra></extra>`});
-    for (let k = 0; k <= steps; k += 6) {
-      data.push({ x:[xRing[k], xRing[k]], y:[yRing[k], yRing[k]], z:[zCapBot, zPileBot],
-        type:'scatter3d', mode:'lines', line:{ color:'#1E90FF', width:2 }, showlegend:false, hoverinfo:'skip' });
-    }
+    
+    // 4 verticals (cardinal) → clean cylinder impression with force-based color
+    const angs = [0, Math.PI/2, Math.PI, 3*Math.PI/2];
+    angs.forEach((ang, k) => {
+      const x = p.x + pileRadius * Math.cos(ang);
+      const y = p.y + pileRadius * Math.sin(ang);
+      data.push({
+        x: [x, x],
+        y: [y, y],
+        z: [zPileTop, zPileBot],
+        type: 'scatter3d',
+        mode: 'lines',
+        line: { color: pileColor, width: 3 },
+        name: (idx === 0 && k === 0) ? 'Piles' : undefined, // legend once
+        legendgroup: 'piles',
+        showlegend: (idx === 0 && k === 0),
+        hoverinfo: 'skip'
+      });
+    });
   });
 
+  // --- Pile force colorbar (single reference) ---
+  if (maxForces && maxForces.length > 0) {
+    const xTop = pilesXY.map(p => p.x);
+    const yTop = pilesXY.map(p => p.y);
+    const zTop = pilesXY.map(() => zPileTop + 0.05); // a hair above cap
+
+    const minF = Math.min(...maxForces);
+    const maxF = Math.max(...maxForces);
+    data.push({
+      type: 'scatter3d',
+      mode: 'markers',
+      x: xTop, y: yTop, z: zTop,
+      name: 'Pile Force (Max)',
+      legendgroup: 'piles',
+      showlegend: true,
+      marker: {
+        size: 4, // smaller since full piles are now colored
+        color: maxForces,
+        colorscale: [
+          [0,  '#27ae60'],  // low (green)
+          [0.5,'#f1c40f'],  // mid (yellow)
+          [1,  '#e74c3c']   // high (red)
+        ],
+        cmin: minF, cmax: maxF,
+        colorbar: {
+          title: { text: 'Pile Max Force (kips)' },
+          thickness: 14,
+          len: 0.6,
+          x: 1.02
+        },
+        opacity: 0.8 // more subtle
+      },
+      hovertemplate: 'Pile %{text}<br>Max = %{marker.color:.1f} kips<extra></extra>',
+      text: pilesXY.map(p => p.id)
+    });
+  }
+
   const layout = {
-    scene:{
-      xaxis:{ title:'X (ft)', showgrid:true, gridcolor:'#E0E0E0' },
-      yaxis:{ title:'Y (ft)', showgrid:true, gridcolor:'#E0E0E0' },
-      zaxis:{ title:'Elevation (ft)', showgrid:true, gridcolor:'#E0E0E0' },
-      camera:{ eye:{ x:1.6, y:1.6, z:1.3 }},
-      bgcolor:'#FFFFFF', aspectmode:'manual', aspectratio:{ x:1, y:1, z:0.8 }
+    scene: {
+      xaxis: { title:'X (ft)', showgrid:true, gridcolor:'#e6e8eb', zeroline:false },
+      yaxis: { title:'Y (ft)', showgrid:true, gridcolor:'#e6e8eb', zeroline:false },
+      zaxis: { title:'Elevation (ft)', showgrid:true, gridcolor:'#e6e8eb', zeroline:false },
+      camera: { eye:{ x:1.6, y:1.6, z:1.25 }, up:{x:0,y:0,z:1} },
+      bgcolor:'#ffffff',
+      aspectmode:'manual', aspectratio:{ x:1, y:1, z:0.7 }
     },
-    margin:{ l:0, r:0, b:0, t:30 },
-    title:{ text:`Pile Cap 3D View — ${nX}×${nY} @ ${sX.toFixed(2)}' × ${sY.toFixed(2)}'`, font:{ size:14, color:'#2c3e50' }},
-    showlegend:false, hovermode:'closest'
+    margin:{ l:0, r:0, b:0, t:36 },
+    title:{
+      text:`3D View — ${nX}×${nY} @ ${sX.toFixed(2)}' × ${sY.toFixed(2)}'`,
+      font:{ size:14, color:'#2c3e50' }
+    },
+    showlegend: false
   };
-  Plotly.newPlot('plot3d', data, layout, { displayModeBar:true, displaylogo:false, responsive:true });
+
+  Plotly.newPlot('plot3d', data, layout, {
+    displayModeBar: true,
+    displaylogo: false,
+    responsive: true,
+    modeBarButtonsToRemove: ['lasso3d','select3d','orbitRotation','resetCameraLastSave']
+  });
 }
 
 /* View helpers */
@@ -1802,6 +2049,7 @@ function useDefaultLoadCases() {
   defaultLoadCases.forEach(loadCase => addLoadCaseRow(loadCase));
   loadCasesData = [...defaultLoadCases];
   updateDataSummary();
+  populateLCPicker(); // 👈 add
 }
 
 function clearAllData() {
@@ -1810,6 +2058,7 @@ function clearAllData() {
   tableBody.innerHTML = '';
   loadCasesData = [];
   updateDataSummary();
+  populateLCPicker(); // 👈 add
 }
 
 function addLoadCaseRow(loadCase = null) {
@@ -1828,13 +2077,19 @@ function addLoadCaseRow(loadCase = null) {
     <td><button type="button" class="btn btn-delete" onclick="deleteRow(this)">Delete</button></td>
   `;
   tableBody.appendChild(row);
-  row.querySelectorAll('input').forEach(inp => inp.addEventListener('change', updateDataFromTable));
+  // Keep data and picker in sync
+  row.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('change', () => { updateDataFromTable(); populateLCPicker(); }); // 👈 add
+    inp.addEventListener('input',  () => { updateDataFromTable(); populateLCPicker(); }); // 👈 add
+  });
+  populateLCPicker(); // 👈 add (covers programmatic add)
 }
 
 function deleteRow(btn) {
   const row = btn.closest('tr');
   row.remove();
   updateDataFromTable();
+  populateLCPicker(); // 👈 add
 }
 
 function updateDataFromTable() {
@@ -1877,9 +2132,11 @@ function parsePastedData() {
   newRows.forEach(r => addLoadCaseRow(r));
   loadCasesData = [...newRows];
   updateDataSummary();
+  populateLCPicker(); // 👈 add (important for paste/import)
 }
 
 /* ---------- ANALYSIS (Step 3) ---------- */
+// ---------- STEP 3: Correct rigid-cap distribution ----------
 function runForceDistributionAnalysis() {
   if (!loadCasesData.length) { alert('Please add load cases first.'); return; }
 
@@ -1888,34 +2145,44 @@ function runForceDistributionAnalysis() {
   const sX = parseFloat(document.getElementById('pile_spacing_x')?.value || 6.0);
   const sY = parseFloat(document.getElementById('pile_spacing_y')?.value || 6.0);
 
-  // build coordinates
+  // Coordinates (ft)
   pileCoordinates = [];
   for (let j=0; j<nY; j++){
     for (let i=0; i<nX; i++){
-      pileCoordinates.push({ id: j*nX + i + 1, x:(i-(nX-1)/2)*sX, y:(j-(nY-1)/2)*sY });
+      pileCoordinates.push({
+        id: j*nX + i + 1,
+        x: (i - (nX-1)/2) * sX,
+        y: (j - (nY-1)/2) * sY
+      });
     }
   }
+  const totalPiles = pileCoordinates.length;
+
+  // Precompute Σx^2 and Σy^2 (ft^2)
+  const sumX2 = pileCoordinates.reduce((s,p)=>s+p.x*p.x,0);
+  const sumY2 = pileCoordinates.reduce((s,p)=>s+p.y*p.y,0);
 
   analysisResultsData = {};
-  const totalPiles = nX*nY;
-
   loadCasesData.forEach(lc => {
-    const [id, factor, fx, fy, fz, mx, my] = lc;
-    const base = fz / totalPiles;
+    const [lcid, factor, fx, fy, fz, mx, my] = lc;
+    const base = fz / totalPiles; // kips
     const forces = pileCoordinates.map(p => {
-      const mX = mx ? (mx * p.y) / (nY * sY * sY / 12) : 0;
-      const mY = my ? (my * p.x) / (nX * sX * sX / 12) : 0;
-      return base + mX + mY;
+      const dMx = (Math.abs(mx) > 0 && sumY2 > 0) ? (mx * p.y) / sumY2 : 0; // kips
+      const dMy = (Math.abs(my) > 0 && sumX2 > 0) ? (my * p.x) / sumX2 : 0; // kips
+      return base + dMx + dMy;
     });
-    analysisResultsData[id] = forces;
+    analysisResultsData[lcid] = forces;
   });
 
   displayAnalysisResults();
   document.getElementById('analysisResults').style.display = 'block';
   document.getElementById('downloadResults').style.display = 'inline-block';
-  
-  // Draw pile force visualization
+
+  // 🧹 Hide blank Analysis Summary (if no cards were produced)
+  hideIfEmptyAnalysisSummary(); // 👈 add this
   setTimeout(drawPileForceVisualization, 100);
+  // Update 3D view with force-based pile colors
+  setTimeout(draw3DView, 150);
 }
 
 /* ---------- RENDER ANALYSIS TABLES ---------- */
@@ -1960,6 +2227,22 @@ function displayAnalysisResults() {
       <td>${min.toFixed(1)}</td><td>${minLC}</td>
     </tr>`;
   }).join('');
+  
+  // 🔽 If you populate #analysisSummary cards somewhere, keep as-is.
+  // But if you don't add anything, hide the empty section:
+  hideIfEmptyAnalysisSummary();  // 👈 add this
+}
+
+/* ---------- PER-PILE MAX FORCES (for 3D coloring) ---------- */
+function getPerPileMaxForces() {
+  if (!pileCoordinates.length || !Object.keys(analysisResultsData).length) return null;
+  const maxByPile = Array(pileCoordinates.length).fill(-Infinity);
+  Object.values(analysisResultsData).forEach(arr => {
+    arr.forEach((v, i) => { if (v > maxByPile[i]) maxByPile[i] = v; });
+  });
+  // If still -Infinity (no data), bail
+  if (maxByPile.some(v => !isFinite(v))) return null;
+  return maxByPile;
 }
 
 /* ---------- EXPORT & VIEW BUTTONS ---------- */
@@ -2001,6 +2284,101 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Initialize pile force visualization interaction
   initializePileForceInteraction();
+  
+  // Update formula descriptions
+  updateFormulaDescriptions();
+
+  // 🔁 Auto-recalc when demands change
+  ['VuOneWayPerFt','VuPunchKips','MuKipFt','concrete_fc','steel_fy','cover','footing_thickness','column_x','column_y']
+    .forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('input', () => {
+          // only recompute if section has been shown at least once
+          calculateOneWayShear();
+          calculateTwoWayShear();
+          calculateFlexuralDesign();
+        });
+      }
+    });
+
+  // Populate LC picker now and anytime the load table changes
+  populateLCPicker();
+
+  // Rebuild LC picker when user uses defaults / clears / edits table
+  const useDefaultBtnLC = document.getElementById('useDefaultData');
+  if (useDefaultBtnLC) useDefaultBtnLC.addEventListener('click', () => {
+    setTimeout(() => { populateLCPicker(); }, 0);
+  });
+  const clearDataBtnLC = document.getElementById('clearData');
+  if (clearDataBtnLC) clearDataBtnLC.addEventListener('click', () => {
+    setTimeout(() => { populateLCPicker(); }, 0);
+  });
+
+  // Also refresh picker whenever table inputs change
+  const tableBody = document.getElementById('loadCasesBody');
+  if (tableBody) {
+    tableBody.addEventListener('input', () => { populateLCPicker(); });
+    tableBody.addEventListener('change', () => { populateLCPicker(); });
+  }
+
+  // Hook the apply button
+  const applyBtn = document.getElementById('applyFromLC');
+  if (applyBtn) applyBtn.addEventListener('click', applyDemandsFromLC);
+
+  // =====================================
+  // Wire Slicer Event Listeners
+  // =====================================
+  
+  // Build slicer LC list initially
+  populateSliceLC();
+
+  // Keep slicer LC list in sync with load cases
+  if (useDefaultBtnLC) useDefaultBtnLC.addEventListener('click', () => {
+    setTimeout(() => { populateSliceLC(); }, 0);
+  });
+  if (clearDataBtnLC) clearDataBtnLC.addEventListener('click', () => {
+    setTimeout(() => { populateSliceLC(); }, 0);
+  });
+  if (tableBody) {
+    tableBody.addEventListener('input', () => { populateSliceLC(); });
+    tableBody.addEventListener('change', () => { populateSliceLC(); });
+  }
+
+  // Hook slicer buttons
+  const btnCompute = document.getElementById('sliceCompute');
+  const btnPush    = document.getElementById('slicePush');
+  if (btnCompute) btnCompute.addEventListener('click', handleSliceCompute);
+  if (btnPush)    btnPush.addEventListener('click', handleSlicePush);
+
+  // Recompute preview whenever slicer params or checkboxes change
+  ['sliceDir','sliceSide','sliceOffset','sliceLC','avgBothSides','showColumnOutline'].forEach(id=>{
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', () => { 
+      // Only recompute if we have previously run a slice computation
+      const vuDisplay = document.getElementById('sliceVuK');
+      if (vuDisplay && vuDisplay.textContent !== '—') {
+        handleSliceCompute(); 
+      }
+    });
+  });
+
+  // Keep cap labels up to date when geometry inputs change
+  ['pile_no_x','pile_no_y','pile_spacing_x','pile_spacing_y','pile_overhang'].forEach(id=>{
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', () => {
+      const { capLenX, capLenY, overhang_ft } = getCapPlanDimsFt();
+      const lenXEl = document.getElementById('capLenXLabel');
+      const lenYEl = document.getElementById('capLenYLabel');
+      const ohEl   = document.getElementById('capOverhangLabel');
+      if (lenXEl) lenXEl.textContent = `${capLenX.toFixed(2)} ft`;
+      if (lenYEl) lenYEl.textContent = `${capLenY.toFixed(2)} ft`;
+      if (ohEl)   ohEl.textContent   = `${(overhang_ft*12).toFixed(1)} in`;
+    });
+  });
+  
+  // Final safety call to ensure LC picker is populated
+  populateLCPicker();
 });
 
 /* ---------- PILE FORCE VISUALIZATION ---------- */
@@ -2080,11 +2458,28 @@ function drawPileForceVisualization() {
     const x = centerX + (pile.x - (minX + maxX) / 2) * scale;
     const y = centerY - (pile.y - (minY + maxY) / 2) * scale; // Flip Y axis
     
-    // Color based on force
-    const hue = (1 - forceRatio) * 120; // Red to green
-    ctx.fillStyle = `hsl(${hue}, 70%, 50%)`;
-    ctx.strokeStyle = '#333';
-    ctx.lineWidth = 2;
+    // Color based on force (match 3D colorscale exactly)
+    let color;
+    if (forceRange > 0) {
+      if (forceRatio <= 0.5) {
+        // Interpolate green to yellow
+        const r = Math.round(39 + (241-39) * (forceRatio * 2));
+        const g = Math.round(174 + (196-174) * (forceRatio * 2));
+        const b = Math.round(96 + (15-96) * (forceRatio * 2));
+        color = `rgb(${r}, ${g}, ${b})`;
+      } else {
+        // Interpolate yellow to red  
+        const r = Math.round(241 + (231-241) * ((forceRatio-0.5) * 2));
+        const g = Math.round(196 + (76-196) * ((forceRatio-0.5) * 2));
+        const b = Math.round(15 + (60-15) * ((forceRatio-0.5) * 2));
+        color = `rgb(${r}, ${g}, ${b})`;
+      }
+    } else {
+      color = '#95a5a6'; // Default gray when no analysis
+    }
+    ctx.fillStyle = color;
+    ctx.strokeStyle = '#2c3e50';
+    ctx.lineWidth = 1.5;
     
     // Draw pile circle
     const radius = 15 + forceRatio * 10; // Size based on force
@@ -2107,42 +2502,44 @@ function drawPileForceVisualization() {
     pile._maxForce = maxForceVal;
   });
   
-  // Draw legend
+  // Draw canvas legend for 2D pile forces (complements HTML info panel)
   drawForceLegend(ctx, canvas, minForce, maxForce);
 }
 
 function drawForceLegend(ctx, canvas, minForce, maxForce) {
   const legendX = 20;
-  const legendY = canvas.height - 80;
-  const legendWidth = 200;
-  const legendHeight = 20;
+  const legendY = canvas.height - 70;
+  const legendWidth = 160;
+  const legendHeight = 16;
   
-  // Legend background
-  ctx.fillStyle = 'rgba(255,255,255,0.9)';
-  ctx.fillRect(legendX - 10, legendY - 30, legendWidth + 20, 60);
-  ctx.strokeStyle = '#ccc';
-  ctx.strokeRect(legendX - 10, legendY - 30, legendWidth + 20, 60);
+  // Legend background (more subtle)
+  ctx.fillStyle = 'rgba(255,255,255,0.95)';
+  ctx.fillRect(legendX - 8, legendY - 28, legendWidth + 16, 50);
+  ctx.strokeStyle = '#dfe3e8';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(legendX - 8, legendY - 28, legendWidth + 16, 50);
   
-  // Color gradient
+  // Color gradient (match 3D view colors)
   const gradient = ctx.createLinearGradient(legendX, 0, legendX + legendWidth, 0);
-  gradient.addColorStop(0, 'hsl(120, 70%, 50%)'); // Green (low force)
-  gradient.addColorStop(0.5, 'hsl(60, 70%, 50%)'); // Yellow
-  gradient.addColorStop(1, 'hsl(0, 70%, 50%)'); // Red (high force)
+  gradient.addColorStop(0, '#27ae60');  // Green (low) - match 3D
+  gradient.addColorStop(0.5, '#f1c40f'); // Yellow (mid) - match 3D  
+  gradient.addColorStop(1, '#e74c3c');   // Red (high) - match 3D
   
   ctx.fillStyle = gradient;
   ctx.fillRect(legendX, legendY, legendWidth, legendHeight);
-  ctx.strokeStyle = '#333';
+  ctx.strokeStyle = '#95a5a6';
   ctx.strokeRect(legendX, legendY, legendWidth, legendHeight);
   
-  // Legend labels
-  ctx.fillStyle = '#333';
-  ctx.font = '11px Arial';
+  // Legend labels (refined styling)
+  ctx.fillStyle = '#2c3e50';
+  ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", Arial';
   ctx.textAlign = 'left';
-  ctx.fillText(`${minForce.toFixed(0)} kips`, legendX, legendY - 5);
+  ctx.fillText(`${minForce.toFixed(1)}`, legendX, legendY - 4);
   ctx.textAlign = 'right';
-  ctx.fillText(`${maxForce.toFixed(0)} kips`, legendX + legendWidth, legendY - 5);
+  ctx.fillText(`${maxForce.toFixed(1)} kips`, legendX + legendWidth, legendY - 4);
   ctx.textAlign = 'center';
-  ctx.fillText('Pile Forces', legendX + legendWidth/2, legendY + legendHeight + 15);
+  ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", Arial';
+  ctx.fillText('2D Force View', legendX + legendWidth/2, legendY + legendHeight + 12);
 }
 
 // Add mouse interaction for pile force visualization
@@ -2153,44 +2550,55 @@ function initializePileForceInteraction() {
   if (!canvas || !tooltip) return;
   
   canvas.addEventListener('mousemove', (e) => {
+    const vis = document.getElementById('forceVisualization');
+    const visRect = vis.getBoundingClientRect();
     const rect = canvas.getBoundingClientRect();
+
+    // mouse in canvas coords (for hit testing)
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
-    
+
     let hoveredPile = null;
-    
-    // Check if mouse is over any pile
     pileCoordinates.forEach(pile => {
       if (pile._drawX && pile._drawY) {
         const dx = mouseX - pile._drawX;
         const dy = mouseY - pile._drawY;
-        const distance = Math.sqrt(dx*dx + dy*dy);
-        
-        if (distance <= pile._radius) {
-          hoveredPile = pile;
-        }
+        if (Math.hypot(dx, dy) <= pile._radius) hoveredPile = pile;
       }
     });
     
     if (hoveredPile) {
-      // Show tooltip
       const forces = Object.keys(analysisResultsData).map(lc => {
-        const force = analysisResultsData[lc][hoveredPile.id - 1] || 0;
-        return `LC${lc}: ${force.toFixed(1)} kips`;
+        const f = analysisResultsData[lc][hoveredPile.id - 1] || 0;
+        return `LC${lc}: ${f.toFixed(1)} kips`;
       }).join('<br>');
-      
+
       tooltip.innerHTML = `
         <strong>Pile ${hoveredPile.id}</strong><br>
-        Position: (${hoveredPile.x.toFixed(1)}', ${hoveredPile.y.toFixed(1)}')<br>
-        Max Force: ${hoveredPile._maxForce.toFixed(1)} kips<br>
+        Pos: (${hoveredPile.x.toFixed(1)}', ${hoveredPile.y.toFixed(1)}')<br>
+        Max: ${hoveredPile._maxForce.toFixed(1)} kips
         <hr style="margin:4px 0; border-color:#666;">
         ${forces}
       `;
-      
       tooltip.style.display = 'block';
-      tooltip.style.left = (e.clientX + 10) + 'px';
-      tooltip.style.top = (e.clientY - 10) + 'px';
-      
+
+      // measure tooltip
+      const tw = tooltip.offsetWidth || 260;
+      const th = tooltip.offsetHeight || 120;
+
+      // desired position (relative to visualization container, not page)
+      let left = (e.clientX - visRect.left) + 12;
+      let top  = (e.clientY - visRect.top)  - 12;
+
+      // clamp to keep inside the container
+      const pad = 8;
+      if (left + tw + pad > visRect.width) left = Math.max(pad, (e.clientX - visRect.left) - tw - 12);
+      if (top + th + pad > visRect.height) top  = Math.max(pad, (e.clientY - visRect.top)  - th - 12);
+      if (left < pad) left = pad;
+      if (top  < pad) top  = pad;
+
+      tooltip.style.left = left + 'px';
+      tooltip.style.top  = top  + 'px';
       canvas.style.cursor = 'pointer';
     } else {
       tooltip.style.display = 'none';
@@ -2206,95 +2614,215 @@ function initializePileForceInteraction() {
 </script>
 
 <script>
-/* ---------- STRUCTURAL ANALYSIS (Step 4) ---------- */
-function calculateOneWayShear() {
-  const fc = parseFloat(document.getElementById('concrete_fc')?.value || 5.5) * 1000; // psi
-  const thickness = parseFloat(document.getElementById('footing_thickness')?.value || 4.0); // ft
-  const columnW = parseFloat(document.getElementById('column_x')?.value || 3.0); // ft
-
-  const d = thickness - 0.25; // ft (approx cover to centroid)
-  const critDist = columnW/2 + d;
-
-  // simple illustrative capacity (psi^0.5 form, converted to kips/ft)
-  const Vc = (2 * Math.sqrt(fc) * 12 * d) / 1000; // kips/ft
-  const applied = 100; // kips (example)
-  const util = applied / Vc;
-
-  const results = `
-    <p><strong>Effective Depth (d):</strong> ${d.toFixed(2)} ft</p>
-    <p><strong>Critical Distance:</strong> ${critDist.toFixed(2)} ft</p>
-    <p><strong>Concrete Shear Capacity (Vc):</strong> ${Vc.toFixed(1)} kips/ft</p>
-    <p><strong>Applied Shear:</strong> ${applied} kips</p>
-    <p><strong>Utilization Ratio:</strong> ${(util*100).toFixed(1)}%</p>
-    <p class="status ${util < 1.0 ? 'safe' : 'warning'}"><strong>Status: ${util < 1.0 ? 'SAFE ✓' : 'NEEDS REINFORCEMENT ⚠'}</strong></p>`;
-
-  const contentEl = document.getElementById('oneWayShearContent');
-  const resultsEl = document.getElementById('oneWayShearResults');
-  if (contentEl) {
-    contentEl.innerHTML = results;
-    resultsEl.style.display = 'block';
-  }
-}
-
-function calculateTwoWayShear() {
-  const fc = parseFloat(document.getElementById('concrete_fc')?.value || 5.5) * 1000; // psi
-  const thickness = parseFloat(document.getElementById('footing_thickness')?.value || 4.0); // ft
-  const columnW = parseFloat(document.getElementById('column_x')?.value || 3.0); // ft
-  const columnD = parseFloat(document.getElementById('column_y')?.value || 3.0); // ft
-
-  const d = thickness - 0.25; // ft
-  const bo = 2 * (columnW + d) + 2 * (columnD + d); // ft
-  const Vc = (4 * Math.sqrt(fc) * (bo*12) * (d*12)) / 1000; // kips (illustrative)
-  const applied = 500; // kips (example)
-  const util = applied / Vc;
-
-  const results = `
-    <p><strong>Effective Depth (d):</strong> ${d.toFixed(2)} ft</p>
-    <p><strong>Critical Perimeter (bo):</strong> ${bo.toFixed(1)} ft</p>
-    <p><strong>Punching Shear Capacity (Vc):</strong> ${Vc.toFixed(0)} kips</p>
-    <p><strong>Applied Punching Shear:</strong> ${applied} kips</p>
-    <p><strong>Utilization Ratio:</strong> ${(util*100).toFixed(1)}%</p>
-    <p class="status ${util < 1.0 ? 'safe' : 'warning'}"><strong>Status: ${util < 1.0 ? 'SAFE ✓' : 'NEEDS REINFORCEMENT ⚠'}</strong></p>`;
-
-  const contentEl = document.getElementById('twoWayShearContent');
-  const resultsEl = document.getElementById('twoWayShearResults');
-  if (contentEl) {
-    contentEl.innerHTML = results;
-    resultsEl.style.display = 'block';
-  }
-}
-
-function calculateFlexuralDesign() {
+// ---------- SHARED HELPERS (units, parameters, text) ----------
+function getDesignParams() {
+  // Read existing inputs
   const fc_ksi = parseFloat(document.getElementById('concrete_fc')?.value || 5.5); // ksi
-  const thickness = parseFloat(document.getElementById('footing_thickness')?.value || 4.0); // ft
-  const width = parseFloat(document.getElementById('pile_spacing_y')?.value || 6.0) * 2 + 3; // ft (illustrative)
-  const d = thickness - 0.25; // ft
+  const fy_ksi = parseFloat(document.getElementById('steel_fy')?.value || 60);     // ksi
+  const h_ft   = parseFloat(document.getElementById('footing_thickness')?.value || 4.0); // ft
+  const cover_in = parseFloat(document.getElementById('cover')?.value || 4.0);     // in
+  const colX_ft  = parseFloat(document.getElementById('column_x')?.value || 3.0);  // ft (long side)
+  const colY_ft  = parseFloat(document.getElementById('column_y')?.value || 3.0);  // ft (short side)
 
-  const Mu = 200 * 12; // kip-in (example)
-  // simple illustrative steel area; not a code check
-  const reqAs = (Mu * 12) / (0.9 * 60000 * 0.9 * d * 12); // in²
-  const fc = fc_ksi * 1000; // psi
-  const minAs = Math.max(
-    0.0018 * (width * 12) * (thickness * 12),
-    (3 * Math.sqrt(fc) / 60000) * (width * 12) * (thickness * 12)
-  );
-  const provAs = Math.max(reqAs, minAs);
-  const numBars = Math.ceil(provAs / 0.79); // #8 ~0.79 in²
-  const spacing = (width * 12) / numBars; // in
+  // Detailing assumptions (safe defaults; you can expose as inputs later)
+  const stirrupDia_in = 0.375;   // #3 ≈ 3/8"
+  const barDia_in     = 1.0;     // #8 ≈ 1.0"
 
-  const results = `
-    <p><strong>Applied Moment (Mu):</strong> ${(Mu/12).toFixed(1)} kip-ft</p>
-    <p><strong>Required Steel Area (As,req):</strong> ${reqAs.toFixed(2)} in²</p>
-    <p><strong>Minimum Steel Area (As,min):</strong> ${minAs.toFixed(2)} in²</p>
-    <p><strong>Provided Steel Area:</strong> ${provAs.toFixed(2)} in²</p>
-    <p class="reinforcement"><strong>Reinforcement Design: ${numBars} #8 bars @ ${spacing.toFixed(1)}" o.c. ✓</strong></p>`;
+  // Geometry (inches)
+  const h_in  = h_ft * 12.0;
+  const cx_in = colX_ft * 12.0;
+  const cy_in = colY_ft * 12.0;
 
-  const contentEl = document.getElementById('flexuralContent');
-  const resultsEl = document.getElementById('flexuralResults');
-  if (contentEl) {
-    contentEl.innerHTML = results;
-    resultsEl.style.display = 'block';
+  // Effective depth d and shear depth dv (LRFD)
+  const d_in  = Math.max(0, h_in - cover_in - stirrupDia_in - 0.5*barDia_in);
+  const dv_in = 0.9 * d_in;
+
+  return { fc_ksi, fy_ksi, h_ft, h_in, d_in, dv_in, cx_in, cy_in, cover_in };
+}
+
+// Pretty number
+function fmt(x, n=2) { return Number.isFinite(x) ? x.toFixed(n) : '—'; }
+
+// Inject accurate formula/description text into each calc box
+function updateFormulaDescriptions() {
+  // One-way shear (per foot strip)
+  const oneWayBox = document.querySelector('.calculation-section:nth-of-type(1) .formula-box');
+  if (oneWayBox) {
+    oneWayBox.innerHTML = `
+      <h4>One-Way Shear (LRFD)</h4>
+      <div class="formula"><strong>
+        v_c = 0.0316&nbsp;√f'<sub>c</sub> &nbsp; (ksi)<br>
+        V<sub>c</sub> = v_c · b<sub>w</sub> · d<sub>v</sub>  &nbsp;→&nbsp; <i>kips</i><br>
+        φV<sub>n</sub> = φ<sub>v</sub> · V<sub>c</sub>
+      </strong></div>
+      <div class="parameter-explanation">
+        <p><strong>Where:</strong></p>
+        <ul>
+          <li>f'<sub>c</sub> in <b>ksi</b>; b<sub>w</sub> = 12&nbsp;in (per-foot strip); d<sub>v</sub> = 0.9d (in)</li>
+          <li>d = h − cover − stirrup − ½·(bar dia)</li>
+          <li>φ<sub>v</sub> ≈ 0.90 (check project spec)</li>
+          <li>Compare factored demand per foot, V<sub>u</sub>(per-ft), to φV<sub>n</sub>(per-ft)</li>
+        </ul>
+      </div>`;
   }
+
+  // Two-way punching shear
+  const twoWayBox = document.querySelector('.calculation-section:nth-of-type(2) .formula-box');
+  if (twoWayBox) {
+    twoWayBox.innerHTML = `
+      <h4>Punching (Two-Way) Shear (LRFD)</h4>
+      <div class="formula"><strong>
+        b<sub>0</sub> at a perimeter located d<sub>v</sub>/2 from column faces<br>
+        V<sub>n</sub> = (0.063 + 0.126/β<sub>c</sub>) · √f'<sub>c</sub> · b<sub>0</sub> · d<sub>v</sub>  &nbsp;→&nbsp; <i>kips</i><br>
+        φV<sub>n</sub> = φ<sub>v</sub> · V<sub>n</sub>
+      </strong></div>
+      <div class="parameter-explanation">
+        <p><strong>Where:</strong></p>
+        <ul>
+          <li>β<sub>c</sub> = long/short side ratio (use 2.0 if unknown)</li>
+          <li>All lengths in <b>inches</b>, f'<sub>c</sub> in <b>ksi</b>, V in <b>kips</b></li>
+          <li>Compare factored punching demand V<sub>u</sub> at that perimeter to φV<sub>n</sub></li>
+        </ul>
+      </div>`;
+  }
+
+  // Flexural design
+  const flexBox = document.querySelector('.calculation-section:nth-of-type(3) .formula-box');
+  if (flexBox) {
+    flexBox.innerHTML = `
+      <h4>Flexural Design (Rectangular Stress Block)</h4>
+      <div class="formula"><strong>
+        a = (A<sub>s</sub> f<sub>y</sub>) / (0.85 f'<sub>c</sub> b)<br>
+        M<sub>n</sub> = A<sub>s</sub> f<sub>y</sub> (d − a/2)  &nbsp;→&nbsp; <i>kip-in</i><br>
+        φM<sub>n</sub> ≥ M<sub>u</sub>
+      </strong></div>
+      <div class="parameter-explanation">
+        <p><strong>Notes:</strong></p>
+        <ul>
+          <li>Use inches/ksi/kip-in consistently; φ ≈ 0.90 (tension-controlled)</li>
+          <li>We design per-foot strip: b = 12&nbsp;in for footings/slabs</li>
+          <li>Minimum steel: max{ 0.0018·b·h , (3√f'<sub>c</sub>/f<sub>y</sub>)·b·h } (in² per foot)</li>
+        </ul>
+      </div>`;
+  }
+}
+
+/* ---------- STRUCTURAL ANALYSIS (Step 4) ---------- */
+// One-Way Shear (LRFD; per-ft strip)
+function calculateOneWayShear() {
+  const { fc_ksi, h_in, d_in, dv_in } = getDesignParams();
+  const phi_v = 0.90;
+  const bw_in = 12.0;
+
+  // Concrete shear resistance
+  const vc_ksi = 0.0316 * Math.sqrt(fc_ksi);      // ksi
+  const Vc_kips_per_ft = vc_ksi * bw_in * dv_in;  // kips/ft
+  const phiVn_kips_per_ft = phi_v * Vc_kips_per_ft;
+
+  // Demand from input
+  const Vu_per_ft_kips = parseFloat(document.getElementById('VuOneWayPerFt')?.value || 0);
+
+  const util = Vu_per_ft_kips / phiVn_kips_per_ft;
+
+  const html = `
+    <p><strong>Inputs:</strong> f'<sub>c</sub>=${fmt(fc_ksi)} ksi, b<sub>w</sub>=12 in, d=${fmt(d_in)} in, d<sub>v</sub>=${fmt(dv_in)} in</p>
+    <p><strong>Concrete:</strong> v<sub>c</sub>=0.0316√f'<sub>c</sub>=${fmt(vc_ksi,3)} ksi</p>
+    <p><strong>Capacity:</strong> V<sub>c</sub>=${fmt(Vc_kips_per_ft)} kips/ft; &nbsp; φV<sub>n</sub>=${fmt(phiVn_kips_per_ft)} kips/ft</p>
+    <p><strong>Demand (per-ft):</strong> V<sub>u</sub>=${fmt(Vu_per_ft_kips)} kips/ft</p>
+    <p style="color:#6c757d;font-size:.9rem;">Demand source: governing 1-way shear at section d<sub>v</sub> from face.</p>
+    <p><strong>Utilization:</strong> ${(util*100).toFixed(1)}%</p>
+    <p class="status ${util <= 1 ? 'safe' : 'warning'}"><strong>Status: ${util <= 1 ? 'SAFE ✓' : 'NG — Provide shear reinforcement'}</strong></p>
+  `;
+  const content = document.getElementById('oneWayShearContent');
+  const box = document.getElementById('oneWayShearResults');
+  if (content && box) { content.innerHTML = html; box.style.display = 'block'; }
+}
+
+// Two-Way (Punching) Shear (LRFD)
+function calculateTwoWayShear() {
+  const { fc_ksi, d_in, dv_in, cx_in, cy_in } = getDesignParams();
+  const phi_v = 0.90;
+
+  // Critical perimeter at dv/2: b0 = 2((cx+dv)+(cy+dv))
+  const b0_in = 2 * ((cx_in + dv_in) + (cy_in + dv_in));
+
+  const beta_c = 2.0; // long/short ratio
+  const coeff = (0.063 + 0.126 / beta_c);
+
+  const Vn_kips = coeff * Math.sqrt(fc_ksi) * b0_in * dv_in;
+  const phiVn_kips = phi_v * Vn_kips;
+
+  // Demand from input
+  const Vu_punch_kips = parseFloat(document.getElementById('VuPunchKips')?.value || 0);
+
+  const util = Vu_punch_kips / phiVn_kips;
+
+  const html = `
+    <p><strong>Inputs:</strong> f'<sub>c</sub>=${fmt(fc_ksi)} ksi, β<sub>c</sub>=${beta_c}, d=${fmt(d_in)} in, d<sub>v</sub>=${fmt(dv_in)} in</p>
+    <p><strong>Critical Perimeter:</strong> b<sub>0</sub>=${fmt(b0_in)} in (located at d<sub>v</sub>/2)</p>
+    <p><strong>Capacity:</strong> V<sub>n</sub>=${fmt(Vn_kips)} kips; &nbsp; φV<sub>n</sub>=${fmt(phiVn_kips)} kips</p>
+    <p><strong>Demand:</strong> V<sub>u</sub>=${fmt(Vu_punch_kips)} kips</p>
+    <p style="color:#6c757d;font-size:.9rem;">Demand source: punching shear on b<sub>0</sub> at d<sub>v</sub>/2.</p>
+    <p><strong>Utilization:</strong> ${(util*100).toFixed(1)}%</p>
+    <p class="status ${util <= 1 ? 'safe' : 'warning'}"><strong>Status: ${util <= 1 ? 'SAFE ✓' : 'NG — Increase thickness, add shear reinforcement, or enlarge column footprint'}</strong></p>
+  `;
+  const content = document.getElementById('twoWayShearContent');
+  const box = document.getElementById('twoWayShearResults');
+  if (content && box) { content.innerHTML = html; box.style.display = 'block'; }
+}
+
+// Flexural Design (per-ft strip, inches/ksi/kip-in)
+function calculateFlexuralDesign() {
+  const { fc_ksi, fy_ksi, h_in, d_in } = getDesignParams();
+  const b_in = 12.0;
+  const phi = 0.90;
+
+  // Demand from input
+  const Mu_kipft = parseFloat(document.getElementById('MuKipFt')?.value || 0);
+  const Mu_kipin = Mu_kipft * 12.0;
+
+  // Solve quadratic: phi*As*fy*(d - (As*fy)/(2*0.85*fc*b)) = Mu
+  const fy = fy_ksi, fc = fc_ksi;
+  const A = -phi * fy*fy / (2 * 0.85 * fc * b_in);
+  const B =  phi * fy * d_in;
+  const C = -Mu_kipin;
+
+  let As_req = 0;
+  const disc = B*B - 4*A*C;
+  if (disc >= 0 && Math.abs(A) > 1e-9) {
+    const r1 = (-B + Math.sqrt(disc)) / (2*A);
+    const r2 = (-B - Math.sqrt(disc)) / (2*A);
+    As_req = Math.max(r1, r2, 0);
+  } else {
+    // fallback if near-linear
+    As_req = Mu_kipin / (phi * fy * Math.max(d_in - 0.5, 1));
+  }
+
+  // Minimum steel
+  const fc_psi = fc * 1000.0, fy_psi = fy * 1000.0;
+  const As_min1 = 0.0018 * b_in * h_in;
+  const As_min2 = (3 * Math.sqrt(fc_psi) / fy_psi) * b_in * h_in;
+  const As_min  = Math.max(As_min1, As_min2);
+
+  const As_prov = Math.max(As_req, As_min);
+
+  // Bar takeoff (per-ft strip) with #8 bars (0.79 in²)
+  const Abar = 0.79;
+  const nBars_per_ft = Math.max(1, Math.ceil(As_prov / Abar));
+  const spacing_in = b_in / nBars_per_ft;
+
+  const html = `
+    <p><strong>Inputs:</strong> f'<sub>c</sub>=${fmt(fc)} ksi, f<sub>y</sub>=${fmt(fy)} ksi, b=${fmt(b_in)} in, h=${fmt(h_in)} in, d=${fmt(d_in)} in</p>
+    <p><strong>Demand:</strong> M<sub>u</sub>=${fmt(Mu_kipft)} kip-ft (${fmt(Mu_kipin)} kip-in)</p>
+    <p><strong>Required Steel:</strong> A<sub>s,req</sub>=${fmt(As_req)} in²/ft</p>
+    <p><strong>Minimum Steel:</strong> A<sub>s,min</sub>=${fmt(As_min)} in²/ft</p>
+    <p><strong>Provide:</strong> A<sub>s,prov</sub>=${fmt(As_prov)} in²/ft</p>
+    <p class="reinforcement"><strong>Bars:</strong> ${nBars_per_ft} × #8 per ft → ${fmt(spacing_in)}" o.c.</p>
+    <p style="color:#6c757d;font-size:.9rem;">Demand source: governing factored moment for the design strip.</p>
+  `;
+  const content = document.getElementById('flexuralContent');
+  const box = document.getElementById('flexuralResults');
+  if (content && box) { content.innerHTML = html; box.style.display = 'block'; }
 }
 
 function generateDesignSummary() {
@@ -2354,6 +2882,567 @@ function generateDesignSummary() {
     contentEl.innerHTML = summary;
     resultsEl.style.display = 'block';
   }
+}
+
+// =====================================
+// Load Case Picker Functions
+// =====================================
+
+function getCapPlanDimsFt() {
+  const nX = parseInt(document.getElementById('pile_no_x')?.value || 3);
+  const nY = parseInt(document.getElementById('pile_no_y')?.value || 3);
+  const sX = parseFloat(document.getElementById('pile_spacing_x')?.value || 6.0);
+  const sY = parseFloat(document.getElementById('pile_spacing_y')?.value || 6.0);
+  const overhang = parseFloat(document.getElementById('pile_overhang')?.value || 18.0);
+  
+  const overhang_ft = overhang / 12.0;
+  const capLenX = sX * (nX - 1) + 2.0 * overhang_ft;
+  const capLenY = sY * (nY - 1) + 2.0 * overhang_ft;
+  
+  return { capLenX, capLenY, overhang_ft };
+}
+
+function populateLCPicker() {
+  const { capLenX, capLenY, overhang_ft } = getCapPlanDimsFt();
+  const thickness = parseFloat(document.getElementById('footing_thickness')?.value || 4.0);
+  
+  // Create sample load cases based on current geometry
+  const selfWeight = capLenX * capLenY * thickness * 0.15; // concrete unit weight ~0.15 kcf
+  
+  const loadCases = [
+    {
+      id: 'lc1',
+      name: 'Dead Load Only',
+      description: 'Self-weight + superstructure dead loads',
+      Pu: selfWeight + 100, // kips
+      Vux: 0,
+      Vuy: 0,
+      Mux: 0,
+      Muy: 0
+    },
+    {
+      id: 'lc2', 
+      name: 'Dead + Live',
+      description: 'Gravity loads with live load',
+      Pu: selfWeight + 250,
+      Vux: 0,
+      Vuy: 0,
+      Mux: 0,
+      Muy: 0
+    },
+    {
+      id: 'lc3',
+      name: 'Dead + Wind (X)',
+      description: 'Gravity + lateral wind in X-direction',
+      Pu: selfWeight + 150,
+      Vux: 45,
+      Vuy: 0,
+      Mux: 180,
+      Muy: 0
+    },
+    {
+      id: 'lc4',
+      name: 'Dead + Wind (Y)',
+      description: 'Gravity + lateral wind in Y-direction',
+      Pu: selfWeight + 150,
+      Vux: 0,
+      Vuy: 35,
+      Mux: 0,
+      Muy: 140
+    },
+    {
+      id: 'lc5',
+      name: 'Dead + Seismic',
+      description: 'Gravity + seismic lateral forces',
+      Pu: selfWeight + 120,
+      Vux: 65,
+      Vuy: 48,
+      Mux: 260,
+      Muy: 195
+    }
+  ];
+  
+  // Populate the Load Case Picker dropdown
+  const lcSelect = document.getElementById('loadCaseSelect');
+  if (lcSelect) {
+    // Clear existing options except the first placeholder
+    lcSelect.innerHTML = '<option value="">-- Select Load Case --</option>';
+    
+    // Add load case options
+    loadCases.forEach(lc => {
+      const option = document.createElement('option');
+      option.value = lc.id;
+      option.textContent = `${lc.name} - ${lc.description}`;
+      option.dataset.pu = lc.Pu;
+      option.dataset.vux = lc.Vux;
+      option.dataset.vuy = lc.Vuy;
+      option.dataset.mux = lc.Mux;
+      option.dataset.muy = lc.Muy;
+      lcSelect.appendChild(option);
+    });
+    
+    console.log('Load Case Picker populated with', loadCases.length, 'cases');
+  }
+}
+
+function applyDemandsFromLC() {
+  const lcSelect = document.getElementById('loadCaseSelect');
+  if (!lcSelect || !lcSelect.value) {
+    alert('Please select a load case first.');
+    return;
+  }
+  
+  const selectedOption = lcSelect.options[lcSelect.selectedIndex];
+  const pu = parseFloat(selectedOption.dataset.pu || 0);
+  const vux = parseFloat(selectedOption.dataset.vux || 0);
+  const vuy = parseFloat(selectedOption.dataset.vuy || 0);
+  const mux = parseFloat(selectedOption.dataset.mux || 0);
+  const muy = parseFloat(selectedOption.dataset.muy || 0);
+  
+  // Apply to demand input fields
+  const puField = document.getElementById('PuKips');
+  const vuxField = document.getElementById('VuxKips');
+  const vuyField = document.getElementById('VuyKips');
+  const muxField = document.getElementById('MuxKipFt');
+  const muyField = document.getElementById('MuyKipFt');
+  
+  if (puField) puField.value = pu.toFixed(1);
+  if (vuxField) vuxField.value = vux.toFixed(1);
+  if (vuyField) vuyField.value = vuy.toFixed(1);
+  if (muxField) muxField.value = mux.toFixed(1);
+  if (muyField) muyField.value = muy.toFixed(1);
+  
+  // Calculate flexural moment per foot for flexural design
+  const { capLenX, capLenY } = getCapPlanDimsFt();
+  const MuKipFt_x = mux / capLenY; // moment per foot in X-direction
+  const MuKipFt_y = muy / capLenX; // moment per foot in Y-direction
+  const governing_MuKipFt = Math.max(MuKipFt_x, MuKipFt_y);
+  
+  const flexField = document.getElementById('MuKipFt');
+  if (flexField) flexField.value = governing_MuKipFt.toFixed(2);
+  
+  // Trigger recalculation
+  calculateOneWayShear();
+  calculateTwoWayShear();
+  calculateFlexuralDesign();
+  
+  // Show success message
+  const selectedName = selectedOption.textContent.split(' - ')[0];
+  const statusMsg = `✅ Applied "${selectedName}" demands successfully!\n\nDemands:\n• Pu = ${pu.toFixed(1)} kips\n• Vux = ${vux.toFixed(1)} kips\n• Vuy = ${vuy.toFixed(1)} kips\n• Mux = ${mux.toFixed(1)} kip-ft\n• Muy = ${muy.toFixed(1)} kip-ft\n• Governing Mu/ft = ${governing_MuKipFt.toFixed(2)} kip-ft/ft`;
+  
+  alert(statusMsg);
+  console.log('Applied load case:', selectedName, 'with demands:', {pu, vux, vuy, mux, muy, governing_MuKipFt});
+}
+
+// Auto-populate load cases when geometry changes
+document.addEventListener('DOMContentLoaded', function() {
+  // Populate load cases on page load
+  populateLCPicker();
+  
+  // Re-populate when key geometry inputs change
+  const geometryInputs = ['pile_no_x', 'pile_no_y', 'pile_spacing_x', 'pile_spacing_y', 'footing_thickness', 'pile_overhang'];
+  geometryInputs.forEach(id => {
+    const input = document.getElementById(id);
+    if (input) {
+      input.addEventListener('change', function() {
+        populateLCPicker();
+        console.log('Load cases updated due to geometry change in:', id);
+      });
+    }
+  });
+  
+  console.log('Load Case Picker system initialized');
+});
+
+// =====================================  
+// Real LC Picker for Load Cases Table
+// =====================================
+
+function populateLCPicker() {
+  const sel = document.getElementById('lcPicker');
+  if (!sel) return;
+
+  // Preserve current selection (if any)
+  const prev = sel.value;
+
+  sel.innerHTML = '';
+  const warn = [];
+  const seen = new Set();
+
+  if (!Array.isArray(loadCasesData) || !loadCasesData.length) {
+    sel.disabled = true;
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = 'No load cases available';
+    sel.appendChild(opt);
+    return;
+  }
+
+  sel.disabled = false;
+
+  loadCasesData.forEach(row => {
+    // row expected: [LC, factor, Fx, Fy, Fz, Mx, My]
+    const LC  = Number(row[0]);
+    const Fx  = Number(row[2]);
+    const Fy  = Number(row[3]);
+    const Fz  = Number(row[4]);
+    const Mx  = Number(row[5]);
+    const My  = Number(row[6]);
+
+    if (seen.has(LC)) warn.push(LC);
+    seen.add(LC);
+
+    const opt = document.createElement('option');
+    opt.value = String(LC);
+    opt.textContent = `LC ${LC}  |  Fx ${Fx} k  Fy ${Fy} k  Fz ${Fz} k  Mx ${Mx} k-ft  My ${My} k-ft`;
+    sel.appendChild(opt);
+  });
+
+  // Try to restore previous selection
+  if (prev && [...sel.options].some(o => o.value === prev)) {
+    sel.value = prev;
+  }
+
+  // Show a gentle warning in the lcPicker note if duplicates exist
+  const note = document.getElementById('lcPickerNote');
+  if (note) {
+    if (warn.length) {
+      note.innerHTML = `⚠️ Duplicate Load Case IDs detected: <b>${[...new Set(warn)].join(', ')}</b>. ` +
+                       `Using the first matching row. Consider making IDs unique.`;
+    } else if (!note.innerHTML.includes('Using')) {
+      // leave any mapping note we wrote earlier; otherwise clear
+      note.textContent = '';
+    }
+  }
+}
+
+function applyDemandsFromLC() {
+  const sel = document.getElementById('lcPicker');
+  const dir = (document.getElementById('stripDir')?.value || 'X').toUpperCase();
+  const noteEl = document.getElementById('lcPickerNote');
+
+  if (!sel || !sel.value) { alert('Select a Load Case first.'); return; }
+
+  // LC id as number (handles "1", "1.0", "01")
+  const LCid = Number(sel.value);
+
+  // Find the FIRST matching LC row
+  const row = loadCasesData.find(r => Number(r[0]) === LCid);
+  if (!row) {
+    alert(`Selected Load Case ${sel.value} not found in table.`);
+    return;
+  }
+
+  const [, factor, Fx, Fy, Fz, Mx, My] = row.map(Number);
+
+  const { capLenX, capLenY, overhang_ft } = getCapPlanDimsFt();
+  // update labels
+  const lenXEl = document.getElementById('capLenXLabel');
+  const lenYEl = document.getElementById('capLenYLabel');
+  const ohEl   = document.getElementById('capOverhangLabel');
+  if (lenXEl) lenXEl.textContent = `${capLenX.toFixed(2)} ft`;
+  if (lenYEl) lenYEl.textContent = `${capLenY.toFixed(2)} ft`;
+  if (ohEl)   ohEl.textContent   = `${(overhang_ft*12).toFixed(1)} in`;
+
+  // Demand mapping (documented in the note)
+  const Vu_punch = Math.abs(Fz);
+  const Vu_oneway_perft = (dir === 'X')
+    ? Math.abs(Fz) / Math.max(capLenY, 1e-6)
+    : Math.abs(Fz) / Math.max(capLenX, 1e-6);
+
+  const Mu_kipft = (dir === 'X')
+    ? Math.abs(My) / Math.max(capLenY, 1e-6)
+    : Math.abs(Mx) / Math.max(capLenX, 1e-6);
+
+  // Apply to inputs
+  const vu1 = document.getElementById('VuOneWayPerFt');
+  const vup = document.getElementById('VuPunchKips');
+  const mu  = document.getElementById('MuKipFt');
+  if (vu1) vu1.value = Vu_oneway_perft.toFixed(2);
+  if (vup) vup.value = Vu_punch.toFixed(1);
+  if (mu)  mu.value  = Mu_kipft.toFixed(1);
+
+  // Friendly mapping note
+  if (noteEl) {
+    const mTxt = (dir === 'X') ? `Mᵤ per-ft = |My| / cap width (Y)` : `Mᵤ per-ft = |Mx| / cap width (X)`;
+    const vTxt = (dir === 'X') ? `Vᵤ per-ft = |Fz| / cap width (Y)` : `Vᵤ per-ft = |Fz| / cap width (X)`;
+    noteEl.innerHTML = `
+      Using <b>LC ${LCid}</b>, strip <b>${dir}</b>.<br>
+      ${vTxt}. Punching Vᵤ = |Fz|. ${mTxt}.<br>
+      Cap dims: X=${capLenX.toFixed(2)} ft, Y=${capLenY.toFixed(2)} ft.
+    `;
+  }
+
+  // Re-run checks so results reflect the pulled demands
+  calculateOneWayShear();
+  calculateTwoWayShear();
+  calculateFlexuralDesign();
+}
+
+// =====================================
+// One-Way Shear Slicer Functions
+// =====================================
+
+// Canvas mapping cache from your pile-force visualization
+function getCanvasMap() {
+  const canvas = document.getElementById('forceCanvas');
+  if (!canvas || !pileCoordinates.length) return null;
+
+  // Rebuild same transforms used in drawPileForceVisualization()
+  const xCoords = pileCoordinates.map(p => p.x);
+  const yCoords = pileCoordinates.map(p => p.y);
+  const minX = Math.min(...xCoords), maxX = Math.max(...xCoords);
+  const minY = Math.min(...yCoords), maxY = Math.max(...yCoords);
+  const margin = 50;
+  const drawWidth = canvas.width - 2*margin;
+  const drawHeight = canvas.height - 2*margin;
+  const xRange = (maxX - minX) || 1;
+  const yRange = (maxY - minY) || 1;
+  const scale = Math.min(drawWidth / xRange, drawHeight / yRange) * 0.8;
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+  const midX = (minX + maxX) / 2;
+  const midY = (minY + maxY) / 2;
+
+  // world(ft) -> canvas(px)
+  function WtoC(x_ft, y_ft) {
+    const x = centerX + (x_ft - midX) * scale;
+    const y = centerY - (y_ft - midY) * scale; // flip Y
+    return { x, y };
+  }
+  return { canvas, WtoC, scale, minX, maxX, minY, maxY };
+}
+
+// Compute dv (in), column faces, and cut position (ft)
+function getCutLocation() {
+  const { d_in, dv_in, cx_in, cy_in } = getDesignParams();
+  const dir   = (document.getElementById('sliceDir')?.value || 'X').toUpperCase();
+  const side  = (document.getElementById('sliceSide')?.value || '+');
+  const offs_in = parseFloat(document.getElementById('sliceOffset')?.value || 0);
+
+  // Column is centered at (0,0); faces at ±cx/2 and ±cy/2 (in); convert to ft
+  const faceX_ft_pos = (cx_in/2) / 12.0;
+  const faceX_ft_neg = -(cx_in/2) / 12.0;
+  const faceY_ft_pos = (cy_in/2) / 12.0;
+  const faceY_ft_neg = -(cy_in/2) / 12.0;
+
+  // Section is at dv from face + offset (on selected side)
+  const dv_ft = dv_in / 12.0;
+  const offs_ft = offs_in / 12.0;
+
+  let cutCoord_ft; // x=const (for X dir) or y=const (for Y dir)
+  if (dir === 'X') {
+    // section is parallel to Y, so x = constant
+    cutCoord_ft = (side === '+')
+      ? (faceX_ft_pos + dv_ft + offs_ft)
+      : (faceX_ft_neg - dv_ft - offs_ft);
+  } else {
+    // dir === 'Y' -> section parallel to X, so y = constant
+    cutCoord_ft = (side === '+')
+      ? (faceY_ft_pos + dv_ft + offs_ft)
+      : (faceY_ft_neg - dv_ft - offs_ft);
+  }
+  return { dir, side, cutCoord_ft, dv_in };
+}
+
+// === PATCH: support "average both sides" in the slice calc ===
+function computeVuFromSlice() {
+  const lcSel = document.getElementById('sliceLC');
+  if (!lcSel || !lcSel.value) { alert('Select a Load Case for the slicer.'); return null; }
+  const LCid = parseFloat(lcSel.value);
+
+  if (!analysisResultsData || !analysisResultsData[LCid]) {
+    alert('No analysis data for the selected Load Case. Run Step 3 analysis first.');
+    return null;
+  }
+
+  const { dir, side, cutCoord_ft, dv_in } = getCutLocation();
+  const forces = analysisResultsData[LCid]; // kips per pile
+  const avgBoth = !!document.getElementById('avgBothSides')?.checked;
+
+  // Helper to sum a side
+  const sumSide = (sgn) => {
+    let sum = 0;
+    pileCoordinates.forEach((p, idx) => {
+      const onSide = (dir === 'X')
+        ? ((sgn === '+') ? (p.x >= cutCoord_ft) : (p.x <= cutCoord_ft))
+        : ((sgn === '+') ? (p.y >= cutCoord_ft) : (p.y <= cutCoord_ft));
+      if (onSide) sum += (forces[idx] || 0);
+    });
+    return Math.abs(sum);
+  };
+
+  let Vu_kips = 0;
+  if (avgBoth) {
+    // average absolute shear from both sides at the same cut
+    const Vu_pos = sumSide('+');
+    const Vu_neg = sumSide('-');
+    Vu_kips = 0.5 * (Vu_pos + Vu_neg);
+  } else {
+    Vu_kips = sumSide(side); // only chosen side
+  }
+
+  // Section length is the span parallel to the section line
+  const { capLenX, capLenY } = getCapPlanDimsFt();
+  const sectionLen_ft = (dir === 'X') ? capLenY : capLenX;
+  const Vu_perft = Vu_kips / Math.max(sectionLen_ft, 1e-6);
+
+  return { Vu_kips, Vu_perft, sectionLen_ft, dir, cutCoord_ft, dv_in };
+}
+
+// === PATCH: drawSliceOverlay now assumes base was just refreshed ===
+function drawSliceOverlay(result) {
+  const map = getCanvasMap();
+  if (!map) return;
+  const { canvas, WtoC, minX, maxX, minY, maxY } = map;
+  const ctx = canvas.getContext('2d');
+
+  ctx.save();
+  ctx.lineWidth = 3;
+  ctx.setLineDash([10, 6]);
+  ctx.strokeStyle = '#e74c3c';
+
+  if (result.dir === 'X') {
+    const p1 = WtoC(result.cutCoord_ft, minY - 1);
+    const p2 = WtoC(result.cutCoord_ft, maxY + 1);
+    ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+  } else {
+    const p1 = WtoC(minX - 1, result.cutCoord_ft);
+    const p2 = WtoC(maxX + 1, result.cutCoord_ft);
+    ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+  }
+
+  // Glow contributing piles per the current side selection
+  const sideSel = document.getElementById('sliceSide')?.value || '+';
+  ctx.lineWidth = 2;
+  pileCoordinates.forEach((p) => {
+    const onSide = (result.dir === 'X')
+      ? ((sideSel === '+') ? (p.x >= result.cutCoord_ft) : (p.x <= result.cutCoord_ft))
+      : ((sideSel === '+') ? (p.y >= result.cutCoord_ft) : (p.y <= result.cutCoord_ft));
+    if (onSide && p._drawX && p._drawY) {
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(231,76,60,0.95)';
+      ctx.fillStyle = 'rgba(231,76,60,0.15)';
+      const r = (p._radius || 14) + 4;
+      ctx.arc(p._drawX, p._drawY, r, 0, 2 * Math.PI);
+      ctx.fill(); ctx.stroke();
+    }
+  });
+
+  ctx.restore();
+}
+
+// Push the slicer result into One-Way demand input and recompute
+function pushSliceToDemand(res) {
+  const vuBox = document.getElementById('VuOneWayPerFt');
+  if (vuBox) {
+    vuBox.value = res.Vu_perft.toFixed(2);
+    // Recompute one-way immediately
+    calculateOneWayShear();
+  }
+}
+
+// Populate slicer LC select from current loadCasesData
+function populateSliceLC() {
+  const sel = document.getElementById('sliceLC');
+  if (!sel) return;
+  sel.innerHTML = '';
+  if (!loadCasesData || !loadCasesData.length) {
+    sel.disabled = true;
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = 'No load cases available';
+    sel.appendChild(opt);
+    return;
+  }
+  sel.disabled = false;
+  loadCasesData.forEach(row => {
+    const [LC, , Fx, Fy, Fz, Mx, My] = row;
+    const opt = document.createElement('option');
+    opt.value = LC;
+    opt.textContent = `LC ${LC}  |  Fz ${Fz} k, Mx ${Mx} k-ft, My ${My} k-ft`;
+    sel.appendChild(opt);
+  });
+}
+
+// === ENHANCED: Handle compute button with fresh view and averaging support ===
+function handleSliceCompute() {
+  const res = computeVuFromSlice();
+  if (!res) return;
+
+  // Update readouts (same as before)
+  const where = document.getElementById('sliceWhere');
+  const vuK   = document.getElementById('sliceVuK');
+  const lenFt = document.getElementById('sliceLenFt');
+  const vuPFt = document.getElementById('sliceVuPerFt');
+  const note  = document.getElementById('sliceNote');
+
+  if (where) where.textContent = (res.dir === 'X')
+    ? `x = ${res.cutCoord_ft.toFixed(2)} ft (at dᵥ=${res.dv_in.toFixed(1)} in from face ± offset)`
+    : `y = ${res.cutCoord_ft.toFixed(2)} ft (at dᵥ=${res.dv_in.toFixed(1)} in from face ± offset)`;
+  if (vuK)   vuK.textContent   = res.Vu_kips.toFixed(1);
+  if (lenFt) lenFt.textContent = res.sectionLen_ft.toFixed(2);
+  if (vuPFt) vuPFt.textContent = res.Vu_perft.toFixed(2);
+
+  const side = (document.getElementById('avgBothSides')?.checked) ? 'average of + and − sides' : `side ${(document.getElementById('sliceSide')?.value || '+')}`;
+  if (note) note.innerHTML = `Using pile reactions from selected LC; contribution = <b>${side}</b>.`;
+
+  // 🔁 Fresh base → optional column → overlay
+  refreshSliceView(res);
+}
+
+// === NEW: draw the column outline on the forceCanvas ===
+function drawColumnOutline() {
+  const map = getCanvasMap();
+  if (!map) return;
+  const { canvas, WtoC } = map;
+  const ctx = canvas.getContext('2d');
+
+  const { cx_in, cy_in } = getDesignParams();
+  const hx_ft = (cx_in/12) / 2; // half-width in ft
+  const hy_ft = (cy_in/12) / 2;
+
+  const p1 = WtoC(-hx_ft, -hy_ft);
+  const p2 = WtoC( hx_ft, -hy_ft);
+  const p3 = WtoC( hx_ft,  hy_ft);
+  const p4 = WtoC(-hx_ft,  hy_ft);
+
+  ctx.save();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgba(231,76,60,0.95)';   // bold edge
+  ctx.fillStyle   = 'rgba(231,76,60,0.12)';   // soft fill
+  ctx.beginPath();
+  ctx.moveTo(p1.x, p1.y);
+  ctx.lineTo(p2.x, p2.y);
+  ctx.lineTo(p3.x, p3.y);
+  ctx.lineTo(p4.x, p4.y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
+
+// === NEW: refresh base drawing, optional column, then overlay ===
+function refreshSliceView(result) {
+  // Redraw the base pile visualization so overlays don't accumulate
+  drawPileForceVisualization();
+
+  // Optionally draw the column outline
+  const showCol = !!document.getElementById('showColumnOutline')?.checked;
+  if (showCol) drawColumnOutline();
+
+  // Then draw the slice overlay (line + contributing pile halos)
+  drawSliceOverlay(result);
+}
+
+// === ENHANCED: Handle push to demand with visual confirmation ===
+function handleSlicePush() {
+  const res = computeVuFromSlice();
+  if (!res) return;
+  pushSliceToDemand(res);
+  // optional: visually confirm by flashing the input
+  const vuBox = document.getElementById('VuOneWayPerFt');
+  if (vuBox) { vuBox.style.boxShadow = '0 0 0 3px rgba(46,204,113,.4)'; setTimeout(()=>vuBox.style.boxShadow='none', 500); }
 }
 </script>
 </body>
